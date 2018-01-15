@@ -1,0 +1,22 @@
+ms.pdf
+ms.dvi
+ms.bbl
+ms.out
+msNotes.bib
+test_problems/Enzo_Build
+test_problems/SelfSimilarInfall/SphericalInfallReport
+test_problems/OneZoneFreefallTest/data.p
+
+syntax: glob
+*.png
+DD????/DD????*
+DD????/data????*
+test_problems/**.eps
+test_problems/**.dat
+test_problems/**.log
+test_problems/**.out
+test_problems/**.in
+test_problems/**/RunFinished
+test_problems/**/Evtime
+test_problems/**/OutputLog
+test_problems/**/Enzo_Build
