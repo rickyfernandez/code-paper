@@ -1,14 +1,8 @@
 NAME=ms
 SECTIONS=code-tests.tex conclusions.tex \
-	development.tex introduction.tex local-commands.tex \
-	numerical-amr.tex numerical-analysis.tex numerical-chemistry.tex \
-	numerical-cooling.tex numerical-gravity.tex \
-        numerical-mhd-ct.tex \
-	numerical-particle.tex \
-	physics-algorithms.tex numerical-radiation-fld.tex \
-	numerical-radiation-homogeneous.tex numerical-radiation-raytracing.tex \
-	numerical-starformation.tex numerical-timestep.tex numerical-zeus.tex \
-	code-architecture.tex parallel.tex 
+	introduction.tex local-commands.tex \
+	physics-algorithms.tex appendix.tex \
+	code-architecture.tex
 LATEX=latex -interaction=nonstopmode
 
 all:  $(NAME).pdf

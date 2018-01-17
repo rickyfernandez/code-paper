@@ -1,12 +1,49 @@
-In this section, we describe the four solvers that we have implemented
-for solving the fluid equations.  We describe the PPM method in
-considerably more detail than the other methods in part because its
-implementation in Enzo has not previously been described, but mostly
-because it introduces many of the ideas and methods used for the
-MUSCL-Dedner and MHDCT schemes (including expansion terms,
-reconstruction, Riemann solvers, and dual energy formalism).
+\section{Physics and Algorithms}
 
 \subsection{Physical Equations}
+The spatial and temporal evolution of a compressible fluid is governed by the Euler equations.
+The Euler equations are a set of hyperbolic conservation laws governing the density $\rho$,
+velocity $\mathbf{v}$, and total specific energy $E$ (specific kinetic energy
+$\frac{1}{2}\rho \mathbf{v}^2$ plus specific internal energy $u$). These quantities $\mathbf{U}$
+and their respected fluxes $\mathbf{F}(\mathbf{U})$, defined through the Euler equations, are
+conviently expressed in vector form as
+%
+\begin{equation}
+    \mathbf{U} =
+    \left(
+    \begin{array}{c}
+        \rho \\
+        \mathbf{v} \\
+        \rho e \\
+    \end{array}
+    \right),
+    \quad
+    \mathbf{F}(\mathbf{U}) =
+    \left(
+    \begin{array}{c}
+        \rho\mathbf{v} \\
+        \rho\mathbf{v}\mathbf{v}^T + P \\
+        \rho e\mathbf{v} + P\mathbf{v} \\
+    \end{array}
+    \right),
+\end{equation}
+%
+where P is the pressure. In this notation the Euler equations are express as:
+%
+\begin{equation}
+    \frac{\partial \mathbf{U}}{\partial t} + \div \mathbf{F} = 0.
+\end{equation}
+%
+As currently stated the system of equations are not closed; more variables then equations. Thus,
+a constraint is needed and is supplied by the equation of state
+%
+\begin{equation}
+    P = \rho(\gamma - 1)u,
+\end{equation}
+%
+where $\gamma$ is the ratio of specific heats. The Euler equations can be solved by the 
+finite-volume approach, which discretized the domain into finite sized disjoint volumes and
+evolves thier spatial averaged $\mathbf{U}$ values. Specifically given a cell $i$
 
 \subsection{Tessellation}
 
@@ -20,11 +57,20 @@ reconstruction, Riemann solvers, and dual energy formalism).
 \subsubsection{Regularization}
 
 \subsection{External Boundary Conditions}
+\subsubsection{Reflecting}
+\subsubsection{Periodic}
 
 \subsection{Gravity}
+\subsubsection{Constant}
 \subsubsection{Tree}
-\subsubsection{Particle Mesh}
 
 \subsection{Chemistry and Cooling}
+\subsubsection{Grackle}
 
 \subsection{Additional Physics}
+\subsubsection{Conduction}
+\subsubsection{Magnetic Fields}
+
+\subsection{Parallelism}
+\subsubsection{Partitioning}
+\subsubsection{Ghost particle copying}
