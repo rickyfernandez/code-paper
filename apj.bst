@@ -1,4 +1,3 @@
-
 %% 1998/08/12  J Baker
 %% Tweaked by hand to get correct results for ApJ.  Added functions from
 %% astrobib.
