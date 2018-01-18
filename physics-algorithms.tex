@@ -6,7 +6,7 @@ Euler equations. The Euler equations are a set of hyperbolic conservation laws
 governing the density $\rho$, velocity $\mathbf{v}$, and total specific energy
 $E$ (specific kinetic energy $\frac{1}{2}\rho \mathbf{v}^2$ plus specific internal
 energy $u$). These quantities $\mathbf{U}$ and their respected fluxes
-$\mathbf{F}(\mathbf{U})$, defined through the Euler equations, are conviently
+$\mathbf{F}(\mathbf{U})$, defined through the Euler equations, are conveniently
 expressed in vector form as
 %
 \begin{equation}
@@ -57,11 +57,23 @@ theorem to convert the volume integral to a surface integral results in
     -\sum_{j}\int\mathbf{F}_{ij}(\mathbf{U})\cdot\mathbf{A}_{ij},
 \end{equation}
 %
-where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$ and
+where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$,
+%
+\begin{equation}
+	\mathbf{Q}_i =
+    \left(
+    \begin{array}{c}
+    	m_i \\
+        \mathbf{p}_i \\
+        E_i
+     \end{array}
+     \right) = \int_{V_i}\mathbf{U}_i dV,
+\end{equation}
+$m_i$ total mass, $\mathbf{p}_i$ total momentum, $E_i$ total energy, and
 $\mathbf{A}_{ij}$ is the cell's surface area normal. Here, an assumption is
 taken that the cells volume is a polyhedron such that the surface integral can
-become a sum over all polygon faces. Furthermore, time is discretize leading to
-a finite difference update of the cell's quanitites
+become a sum over all polygon faces. Furthermore, time is discretized leading to
+a finite difference update of the cell's quantities
 %
 \begin{equation}
     \label{eq.flux_update}
@@ -73,7 +85,7 @@ In this expression the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time
 averaged and constant across the cell face. To be able to use equation
 \ref{eq.flux_update} a strategy must be taken to estimate
 $\mathbf{\hat{F}}^{n+1/2}$ and $A_{ij}$. Sections \ref{sec.riemann} and
-\ref{sec.tessellation} respectively will go into detail how these quanities are
+\ref{sec.tessellation} respectively will go into detail how these quantities are
 estimated.
 
 \subsection{Tessellation}
