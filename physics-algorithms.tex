@@ -80,6 +80,15 @@ there lies a polygon that is equidistant. This geometric property will be exploi
 For the rest of this paper we will refer to the polyhedra associated with the mesh generator as 
 a cell and the polygons making up the polyhedra as faces.
 
+The creation of the Voronoi tessellation can be performed by first constructing the Delaunay
+triangulation. The Delaunay tessellation is the dual graph of the Voronoi tessellation and is
+defined as the triangulation of points such that no point in the set lies inside the 
+circum-circle of any of the triangles in 2d. In 3d the triangles become tetrahedron but
+the same definition applies. Remaining in 2d for simplicity, the points are the vertices's
+of the triangles. The dual aspect refers to the fact that each triangle edge corresponds to
+a Voronoi face and each Voronoi vertex corresponds to the center of the circumcirlce of the
+triangle. 
+
 \subsection{Fluid Update}
 \subsubsection{Reconstruction}
 \subsubsection{Riemann Solve}
