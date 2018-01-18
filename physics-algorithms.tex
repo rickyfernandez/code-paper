@@ -44,29 +44,41 @@ where $\gamma$ is the ratio of specific heats.
 
 These equations can be solved by the finite-volume approach, which is a discretization
 of the domain into finite sized disjoint cells and evolves their spatial averaged
-$\mathbf{U}$ values. Specifically, applying eq. \ref{eq.euler} to every cell $i$ with
+$\mathbf{U}$ values. Specifically, applying eq.\ref{eq.euler} to every cell $i$ with
 volume $V_i$ and performing Gauss' theorem to convert the volume integral to a
 surface integral results in
 %
 \begin{equation}
     \label{eq.euler_int}
-    \frac{\partial{\mathbf{Q}}_i}{\partial{t}} =
+    \frac{d\mathbf{Q}_i}{dt} =
     -\sum_{j}\int\mathbf{F}_{ij}(\mathbf{U})\cdot\mathbf{A}_{ij},
 \end{equation}
 %
 where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$ and $\mathbf{A}_{ij}$ is the
-cells surface normal. Here, an assumption was taken that the cells volume is a polyhedron
+cell's surface area normal. Here, an assumption is taken that the cells volume is a polyhedron
 such that the surface integral can become a sum over all polygon faces. Furthermore, time
 is discretize leading to an update of the cells quanitites
 %
 \begin{equation}
+    \label{eq.flux_update}
     \mathbf{Q}_i^{n+1} = \mathbf{Q}_i^n - \Delta t\sum_j \mathbf{\hat{F}}_{ij}^{n+1/2} A_{ij}.
 \end{equation}
 %
 In this expression the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time averaged and
-constant across the cell face.
+constant across the cell face. To be able to use eq.\ref{eq.flux_update} a strategy must
+be taken to estimate $\mathbf{\hat{F}}^{n+1/2}$ which will be described in sec. and $A_{ij}$
+that will be described in the section.
 
 \subsection{Tessellation}
+As stated in section 2, the Euler equations, as written as 4, assumes that the cells are of the
+form of polyhedrons. There are many forms of space partitioning that meet this criteria but for
+this paper we will restrict our attention to the Voronoi tessellation. The Voronoi tessellation
+partitions the space into a set of disjoint polyhedrons for a given set of points. The set of
+points are called mesh generators and for each generator their corresponds a region consisting of
+all points that are closer to that generator than any other. Thus, for each mesh generating pair
+there lies a polygon that is equidistant. This geometric property will be exploited in section 4.
+For the rest of this paper we will refer to the polyhedra associated with the mesh generator as 
+a cell and the polygons making up the polyhedra as faces.
 
 \subsection{Fluid Update}
 \subsubsection{Reconstruction}
