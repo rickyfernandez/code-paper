@@ -57,7 +57,8 @@ theorem to convert the volume integral to a surface integral results in
     -\sum_{j}\int\mathbf{F}_{ij}(\mathbf{U})\cdot\mathbf{A}_{ij},
 \end{equation}
 %
-where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$,
+where $\mathbf{A}_{ij}$ is the cell's surface area normal and $\mathbf{Q}_i$
+is the volume integral of $\mathbf{U}_i$,
 %
 \begin{equation}
 	\mathbf{Q}_i =
@@ -69,11 +70,11 @@ where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$,
      \end{array}
      \right) = \int_{V_i}\mathbf{U}_i dV,
 \end{equation}
-$m_i$ total mass, $\mathbf{p}_i$ total momentum, $E_i$ total energy, and
-$\mathbf{A}_{ij}$ is the cell's surface area normal. Here, an assumption is
-taken that the cells volume is a polyhedron such that the surface integral can
-become a sum over all polygon faces. Furthermore, time is discretized leading to
-a finite difference update of the cell's quantities
+where $m_i$, $\mathbf{p}_i$ and $E_i$ are cell's total mass, momentum, and
+energy, resptectively. Here, an assumption is taken that the cells volume
+is a polyhedron such that the surface integral can become a sum over all
+polygon faces. Additionally, time is discretized leading to a finite difference
+update of the cell's quantities
 %
 \begin{equation}
     \label{eq.flux_update}
