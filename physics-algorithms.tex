@@ -1,5 +1,4 @@
 \section{Physics and Algorithms}
-
 \subsection{Physical Equations}
 The spatial and temporal evolution of a compressible fluid is governed by the Euler equations.
 The Euler equations are a set of hyperbolic conservation laws governing the density $\rho$,
@@ -15,8 +14,7 @@ conviently expressed in vector form as
         \rho \\
         \mathbf{v} \\
         \rho e \\
-    \end{array}
-    \right),
+    \end{array} \right),
     \quad
     \mathbf{F}(\mathbf{U}) =
     \left(
@@ -28,9 +26,10 @@ conviently expressed in vector form as
     \right),
 \end{equation}
 %
-where P is the pressure. In this notation the Euler equations are express as:
+where P is the pressure. In this notation the Euler equations can be expressed in the form
 %
 \begin{equation}
+    \label{eq.euler}
     \frac{\partial \mathbf{U}}{\partial t} + \div \mathbf{F} = 0.
 \end{equation}
 %
@@ -41,9 +40,32 @@ a constraint is needed and is supplied by the equation of state
     P = \rho(\gamma - 1)u,
 \end{equation}
 %
-where $\gamma$ is the ratio of specific heats. The Euler equations can be solved by the 
-finite-volume approach, which discretized the domain into finite sized disjoint volumes and
-evolves thier spatial averaged $\mathbf{U}$ values. Specifically given a cell $i$
+where $\gamma$ is the ratio of specific heats.
+
+These equations can be solved by the finite-volume approach, which is a discretization
+of the domain into finite sized disjoint cells and evolves their spatial averaged
+$\mathbf{U}$ values. Specifically, applying eq. \ref{eq.euler} to every cell $i$ with
+volume $V_i$ and performing Gauss' theorem to convert the volume integral to a
+surface integral results in
+%
+\begin{equation}
+    \label{eq.euler_int}
+    \frac{\partial{\mathbf{Q}}_i}{\partial{t}} =
+    -\sum_{j}\int\mathbf{F}_{ij}(\mathbf{U})\cdot\mathbf{A}_{ij},
+\end{equation}
+%
+where $\mathbf{Q}_i$ is the volume integral of $\mathbf{U}_i$ and $\mathbf{A}_{ij}$ is the
+cells surface normal. Here, an assumption was taken that the cells volume is a polyhedron
+such that the surface integral can become a sum over all polygon faces. Furthermore, time
+is discretize leading to an update of the cells quanitites
+%
+\begin{equation}
+    \mathbf{Q}_i^{n+1} = \mathbf{Q}_i^n - \Delta t\sum_j \mathbf{\hat{F}}_{ij}^{n+1/2} A_{ij}.
+\end{equation}
+%
+In this expression the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time averaged across
+the cell face.
+
 
 \subsection{Tessellation}
 
