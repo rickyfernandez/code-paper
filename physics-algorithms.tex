@@ -116,6 +116,87 @@ circumcirlce of the triangle.
 
 \subsection{Fluid Update}
 \subsubsection{Reconstruction}
+To solve the riemann problem primitive values are needed at the face. As a first
+choice, cell center values can be used. Although for more accurate results a 
+method is needed to extrapolate the cell center values to the center of mass of 
+the face. A first order, in space and time, can be constructed by taylor 
+expanding the primitive values
+%
+\begin{equation}
+	\label{eq.taylor}
+	\mathbf{W}' = \mathbf{W} + \frac{\partial\mathbf{W}}{\partial\mathbf{r}}
+    	(\mathbf{f}-\mathbf{s}_i) + \frac{\partial\mathbf{W}}
+        {\partial t}{\Delta t}.
+\end{equation}
+%
+The expansion has two unknowns, the spatial derivative
+$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$ and time derivative
+$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$. However, both derivatives
+are related through the Euler equations in primitive form
+%
+\begin{equation}
+    \frac{\partial\mathbf{W}}{\partial t}  + \mathbf{A}
+    	(\mathbf{W})\frac{\partial\mathbf{W}}{\partial t} = 0,
+    \quad
+    \mathbf{A}(\mathbf{W}) =
+    \left(
+    \begin{array}{ccc}
+        \mathbf{v} & \rho & 0 \\
+        0 & \mathbf{v} & 1/\rho \\
+        0 & \gamma P & \mathbf{v}
+    \end{array}
+    \right).
+\end{equation}
+%
+Thus, only the spatial derivatives needed to be calculated. For the
+calculation we follow the method derived from (Springel) which is
+summarized below. Given a cell $i$ the components of 
+$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$, which are gradients
+of the primitive variables, are given by
+%
+\begin{equation}
+	\nabla\phi_i = \frac{1}{V_i}\sum_{j}A_{ij}
+    	\left(\left[\phi_i - \phi_j\right]\right) -
+        \frac{\phi_i + \phi_j}{2}
+        \frac{\mathbf{r}_{ij}}{r_{ij}}.
+\end{equation}
+%
+The sum is over all neighbors $j$ of particle $i$, $\phi_i$ and
+$\phi_j$ are the scalar field values at each cell center respectively,
+$\mathbf{r}_{ij} = \mathbf{r}_i - \mathbf{r}_j$ is the separation vector
+with magnitude $r_{ij} =|\mathbf{r}_{ij}|$. As constructed the gradients
+are second order in space for smooth flows. However, in the presence of
+shocks numerical instabilities may arise and therefore the reconstruction
+must be reduced. To deal with this a slope limiter is used. We employ two
+limiters. The first one is the method used by AREPO and begins with
+the calculation of
+%
+\begin{equation}
+		\psi_{ij} = \left\{
+  		\begin{array}{@{}ll@{}}
+    		(\phi_i^{max} - \phi_i)/\Delta \phi &
+            	\text{for}\ \Delta\phi_{ij} > 0 \\
+            (\phi_i^{min} - \phi_i)/\Delta \phi &
+            	\text{for}\ \Delta\phi_{ij} < 0 \\
+            1 & \text{for}\ \Delta\phi_{ij} = 0,
+  		\end{array}\right.
+\end{equation}
+%
+where $\phi_i^{max} =$ max$(\phi_j)$ and $\phi_i^{min} =$ min$(\phi_j)$ are
+the maximum/minimum values across all neighbors of $i$ and
+$\Delta\phi_{ij} = \nabla \phi_i \cdot (\mathbf{f}_{ij} - \mathbf{s}_i)$. Then 
+the minimum of all $\psi_{ij}$s, associated with each primitive field, is found 
+producing a single scalar value
+%
+\begin{equation}
+	\alpha_i = min(1, \psi_{ij})
+\end{equation}
+%
+ that is used to limit the gradient
+%
+\begin{equation}
+	\nabla \phi_i' = \alpha_i \nabla \phi_i
+\end{equation}
 \subsubsection{Riemann Solve}
 \label{sec.riemann}
 
@@ -124,6 +205,32 @@ circumcirlce of the triangle.
 
 \subsection{Grid Motion}
 \subsubsection{Regularization}
+Allowing the mesh generators to move with the local fluid velocity 
+$\mathbf{w}_i$ can lead to cells that are elongated or mesh generators close to 
+given face. This results, to an unstable evolution of the cells because their 
+faces can move rapidly relative to the generator velocity (Duffell). To 
+counteract this issue (Springel) proposed a correction term that would steer the 
+generator towards its center of mass. This effectively causing the cell to 
+become rounder, thus mitigating the issue. The correction term is defined as
+%
+\begin{equation}
+	\mathbf{w}_i' = \mathbf{w}_i + \chi\left\{
+  		\begin{array}{@{}ll@{}}
+    		0, & \text{for}\ d_i/(\eta R_i) < 0.9 \\
+    		c_i\frac{\mathbf{s}_i - \mathbf{r}_i}{d_i}
+            	\frac{d_i-0.9\eta R_i}{0.2\eta R_i}, 
+            	& \text{for}\ 0.9 \leq d_i/(\eta R_i) < 1.1 \\
+            c_i\frac{\mathbf{s}_i - \mathbf{r}_i}{d_i},
+               	& \text{for}\ 1.1 \leq (d_i)/(\eta R_i).
+  		\end{array}\right.
+\end{equation}
+%
+Here $R_i$ is the effective radius of the cell, $(V_i/\pi)^{1/2}$ for 2d and
+$(3V_i/4\pi)^{1/3}$ for 3d, $d_i$ is the distance between the generators
+position $\mathbf{r}_i$ and center of mass $\mathbf{s}_i$, $c_i$ is the local sound speed. $\chi$ and $\eta$ are tunning parameters which are typically set 
+to 0.25 and 1.0, respectively.
+
+
 
 \subsection{External Boundary Conditions}
 \subsubsection{Reflecting}
