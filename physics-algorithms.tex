@@ -71,7 +71,7 @@ is the volume integral of $\mathbf{U}_i$,
      \right) = \int_{V_i}\mathbf{U}_i dV,
 \end{equation}
 where $m_i$, $\mathbf{p}_i$ and $E_i$ are cell's total mass, momentum, and
-energy, resptectively. Here, an assumption is taken that the cells volume
+energy, respectively. Here, an assumption is taken that the cells volume
 is a polyhedron such that the surface integral can become a sum over all
 polygon faces. Additionally, time is discretized leading to a finite difference
 update of the cell's quantities
@@ -131,12 +131,12 @@ expanding the primitive values
 %
 The expansion has two unknowns, the spatial derivative
 $\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$ and time derivative
-$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$. However, both derivatives
+$\frac{\partial\mathbf{W}}{\partial t}$. However, both derivatives
 are related through the Euler equations in primitive form
 %
 \begin{equation}
     \frac{\partial\mathbf{W}}{\partial t}  + \mathbf{A}
-    	(\mathbf{W})\frac{\partial\mathbf{W}}{\partial t} = 0,
+    	(\mathbf{W})\frac{\partial\mathbf{W}}{\partial\mathbf{r}} = 0,
     \quad
     \mathbf{A}(\mathbf{W}) =
     \left(
@@ -204,6 +204,57 @@ producing a single scalar value
 \subsubsection{Time Integration}
 
 \subsection{Grid Motion}
+As currently constructed the method outlined in solving the Euler equations are 
+for static meshes. In our case we allow the mesh to move, meaning the mesh
+generators are given some velocity $\mathbf{w}_i$. Thus, equation %\ref{eq.euler}
+must be augmented to account for an advection term produced by the movement
+of the face. The updated Euler equations become
+%
+%\begin{equation}
+%	\label{eq.eulermoving}
+%    \mathbf{F}_m(\mathbf{U}) = \mathbf{F}_s(\mathbf{U})
+%    	- \mathbf{U}\mathbf{w}^T =
+%    \left(
+%    \begin{array}{c}
+%        \rho\mathbf{v} \\
+%        \rho\mathbf{v}\mathbf{v}^T + P \\
+%        \rho e\mathbf{v} + P\mathbf{v} \\
+%    \end{array}
+%    \right) -
+%    \left(
+%    \begin{array}{c}
+%        \rho\mathbf{w} \\
+%        \rho\mathbf{v}\mathbf{w}^T \\
+%        \rho e\mathbf{w} \\
+%    \end{array}
+%    \right).
+%\end{equation}
+%
+In practice equation  is not used because of its unstable
+numerical behavior (Parkmor). The equation can become numerical stable by
+solving the fluxes in the rest frame of the face. At the face the conserved 
+variables and fluxes become
+%
+%\begin{equation}
+%	\mathbf{U} =
+ %   \left(
+ %   \begin{array}{c}
+ %       \rho \\
+ %       \mathbf{v-w} \\
+ %       \rho e' \\
+ %   \end{array} \right),
+ %   \quad
+ %  	\mathbf{F}'\mathbf{U}' = 
+ %   \left(
+ %   \begin{array}{c}
+ %       \rho\mathbf{v-w} \\
+ %       \rho\mathbf{v-w}\mathbf{v-w}^T + P \\
+ %       \rho e'\mathbf{v-w} + P\mathbf{v-w} \\
+ %   \end{array}
+ %   \right),
+%\end{equation}
+%
+
 \subsubsection{Regularization}
 Allowing the mesh generators to move with the local fluid velocity 
 $\mathbf{w}_i$ can lead to cells that are elongated or mesh generators close to 
@@ -230,11 +281,30 @@ $(3V_i/4\pi)^{1/3}$ for 3d, $d_i$ is the distance between the generators
 position $\mathbf{r}_i$ and center of mass $\mathbf{s}_i$, $c_i$ is the local sound speed. $\chi$ and $\eta$ are tunning parameters which are typically set 
 to 0.25 and 1.0, respectively.
 
-
-
 \subsection{External Boundary Conditions}
-\subsubsection{Reflecting}
+For each simulation a boundary condition must be defined. At this moment, only
+reflection and periodic boundaries are implemented. Our domains are restricted to
+rectangular domains with arbitrary aspect ratios. The implementation of both
+boundaries make use of ghost particles. These ghost particles are created during
+the mesh construction and carry all particle information to participate in the 
+integration step. From the simulation perspective, they are treated as real particles,
+however, after a time step all ghost particles are discarded and new ghost particles
+are formed with the relevant updated particle information.
+
 \subsubsection{Periodic}
+Periodic boundaries are formed by examining the circumcirlce of each real particle
+in the tessellation. If this value intersects the domain boundary the particle is
+flagged for ghost construction. The flagged particle is then shifted periodically in
+all dimensions including corner cases and tested for boundary intersection. If 
+intersection occurs a ghost particle is formed from the particle but with the
+appropriate position data.
+
+\subsubsection{Reflecting}
+The reflection boundary parallels the periodic case with exception that particles
+are not periodically shifted. Instead, the flagged particle is mirrored across the
+minimum and maximum of each boundary dimension. If intersection occurs, again, a ghost
+particle is formed, however, the sign of the normal velocity component is flipped.
+This ensures that the mass flux vanishes on the surface of the boundary.
 
 \subsection{Gravity}
 \subsubsection{Constant}
