@@ -1,6 +1,6 @@
 \section{Physics and Algorithms}
 \subsection{Physical Equations}
-\label{sec.physical_eq}
+\label{sec.physical.eq}
 The spatial and temporal evolution of a compressible fluid is governed by the
 Euler equations. The Euler equations are a set of hyperbolic conservation laws
 governing the density $\rho$, velocity $\mathbf{v}$, and total specific energy
@@ -52,7 +52,7 @@ spatial averaged $\mathbf{U}$ values. Specifically, applying equation
 theorem to convert the volume integral to a surface integral results in
 %
 \begin{equation}
-    \label{eq.euler_int}
+    \label{eq.euler.int}
     \frac{d\mathbf{Q}_i}{dt} =
     -\sum_{j}\int\mathbf{F}_{ij}(\mathbf{U})\cdot\mathbf{A}_{ij},
 \end{equation}
@@ -77,22 +77,22 @@ polygon faces. Additionally, time is discretized leading to a finite difference
 update of the cell's quantities
 %
 \begin{equation}
-    \label{eq.flux_update}
+    \label{eq.flux.update}
     \mathbf{Q}_i^{n+1} = \mathbf{Q}_i^n - \Delta t\sum_j
     \mathbf{\hat{F}}_{ij}^{n+1/2} A_{ij}.
 \end{equation}
 %
 In this expression the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time
 averaged and constant across the cell face. To be able to use equation
-\ref{eq.flux_update} a strategy must be taken to estimate
+\ref{eq.flux.update} a strategy must be taken to estimate
 $\mathbf{\hat{F}}^{n+1/2}$ and $A_{ij}$. Sections \ref{sec.riemann} and
 \ref{sec.tessellation} respectively will go into detail how these quantities are
 estimated.
 
 \subsection{Tessellation}
 \label{sec.tessellation}
-As stated in Section \ref{sec.physical_eq}, the Euler equations, as written as
-(\ref{eq.flux_update}), assumes that the cells are of the form of polyhedrons.
+As stated in Section \ref{sec.physical.eq}, the Euler equations, as written as
+(\ref{eq.flux.update}), assumes that the cells are of the form of polyhedrons.
 There are many forms of space partitioning that meet this criteria but for this
 paper we will restrict our attention to the Voronoi tessellation. The Voronoi
 tessellation partitions the space into a set of disjoint polyhedrons for a
@@ -206,53 +206,53 @@ producing a single scalar value
 \subsection{Grid Motion}
 As currently constructed the method outlined in solving the Euler equations are 
 for static meshes. In our case we allow the mesh to move, meaning the mesh
-generators are given some velocity $\mathbf{w}_i$. Thus, equation %\ref{eq.euler}
+generators are given some velocity $\mathbf{w}_i$. Thus, equation \ref{eq.euler}
 must be augmented to account for an advection term produced by the movement
 of the face. The updated Euler equations become
 %
-%\begin{equation}
-%	\label{eq.eulermoving}
-%    \mathbf{F}_m(\mathbf{U}) = \mathbf{F}_s(\mathbf{U})
-%    	- \mathbf{U}\mathbf{w}^T =
-%    \left(
-%    \begin{array}{c}
-%        \rho\mathbf{v} \\
-%        \rho\mathbf{v}\mathbf{v}^T + P \\
-%        \rho e\mathbf{v} + P\mathbf{v} \\
-%    \end{array}
-%    \right) -
-%    \left(
-%    \begin{array}{c}
-%        \rho\mathbf{w} \\
-%        \rho\mathbf{v}\mathbf{w}^T \\
-%        \rho e\mathbf{w} \\
-%    \end{array}
-%    \right).
-%\end{equation}
+\begin{equation}
+	\label{eq.euler.moving}
+    \mathbf{F}_m(\mathbf{U}) = \mathbf{F}_s(\mathbf{U})
+    	- \mathbf{U}\mathbf{w}^T =
+    \left(
+    \begin{array}{c}
+        \rho\mathbf{v} \\
+        \rho\mathbf{v}\mathbf{v}^T + P \\
+        \rho e\mathbf{v} + P\mathbf{v} \\
+    \end{array}
+    \right) -
+    \left(
+    \begin{array}{c}
+        \rho\mathbf{w} \\
+        \rho\mathbf{v}\mathbf{w}^T \\
+        \rho e\mathbf{w} \\
+    \end{array}
+    \right).
+\end{equation}
 %
 In practice equation  is not used because of its unstable
 numerical behavior (Parkmor). The equation can become numerical stable by
 solving the fluxes in the rest frame of the face. At the face the conserved 
 variables and fluxes become
 %
-%\begin{equation}
-%	\mathbf{U} =
- %   \left(
- %   \begin{array}{c}
- %       \rho \\
- %       \mathbf{v-w} \\
- %       \rho e' \\
- %   \end{array} \right),
- %   \quad
- %  	\mathbf{F}'\mathbf{U}' = 
- %   \left(
- %   \begin{array}{c}
- %       \rho\mathbf{v-w} \\
- %       \rho\mathbf{v-w}\mathbf{v-w}^T + P \\
- %       \rho e'\mathbf{v-w} + P\mathbf{v-w} \\
- %   \end{array}
- %   \right),
-%\end{equation}
+\begin{equation}
+	\mathbf{U} =
+    \left(
+    \begin{array}{c}
+        \rho \\
+        \mathbf{v-w} \\
+        \rho e' \\
+    \end{array} \right),
+    \quad
+   	\mathbf{F}'\mathbf{U}' = 
+    \left(
+    \begin{array}{c}
+        \rho\mathbf{v-w} \\
+        \rho\mathbf{v-w}\mathbf{v-w}^T + P \\
+        \rho e'\mathbf{v-w} + P\mathbf{v-w} \\
+    \end{array}
+    \right),
+\end{equation}
 %
 
 \subsubsection{Regularization}
