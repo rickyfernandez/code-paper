@@ -205,7 +205,7 @@ producing a single scalar value
 
 \subsection{Grid Motion}
 As currently constructed the method outlined in solving the Euler equations are 
-for static meshes. In our case we allow the mesh to move, meaning the mesh
+for static meshes only. In our case we allow the mesh to move, meaning the mesh
 generators are given some velocity $\mathbf{w}_i$. Thus, equation \ref{eq.euler}
 must be augmented to account for an advection term produced by the movement
 of the face. The updated Euler equations become
@@ -236,24 +236,82 @@ solving the fluxes in the rest frame of the face. At the face the conserved
 variables and fluxes become
 %
 \begin{equation}
-	\mathbf{U} =
+	\mathbf{U}' =
     \left(
     \begin{array}{c}
         \rho \\
-        \mathbf{v-w} \\
+        \rho(\mathbf{v-w}) \\
         \rho e' \\
     \end{array} \right),
     \quad
-   	\mathbf{F}'\mathbf{U}' = 
+   	\mathbf{F}'(\mathbf{U}') = 
     \left(
     \begin{array}{c}
-        \rho\mathbf{v-w} \\
-        \rho\mathbf{v-w}\mathbf{v-w}^T + P \\
-        \rho e'\mathbf{v-w} + P\mathbf{v-w} \\
+        \rho(\mathbf{v-w}) \\
+        \rho(\mathbf{v-w})(\mathbf{v-w})^T + P \\
+        \rho e'(\mathbf{v-w}) + P(\mathbf{v-w}) \\
+    \end{array}\right) =
+    \left(
+        \begin{array}{c}
+        F_\rho' \\
+        F_\mathbf{v}' \\
+        F_e' \\
+    \end{array}
+    \right).
+\end{equation}
+%
+Notice $\rho$ and $P$ remain unchanged however the $e$ transform to
+$e' = e -\frac{1}{2}\mathbf{v}^2 + \frac{1}{2}(\mathbf{v-w})^2$. Now
+the fluxes need to be transformed back to the lab frame
+%
+\begin{equation}
+	\label{eq.euler.face}
+    \mathbf{F}_m(\mathbf{U}) = \mathbf{F}_s(\mathbf{U})
+    	- \mathbf{U}\mathbf{w}^T = \mathbf{F}'(\mathbf{U}') +
+    \left(
+    \begin{array}{c}
+        0 \\
+        \rho\mathbf{w}(\mathbf{v-w})^T \\
+        \rho(\mathbf{vw})(\mathbf{v-w}) -\frac{\rho}{2}
+        	\mathbf{w}^2(\mathbf{v-w}) + p\mathbf{w} \\
     \end{array}
     \right),
 \end{equation}
 %
+where the terms have been picked to make equation \ref{eq.euler.face} consistent with
+equation \ref{eq.euler.moving}. This equation can be restated in terms of the rest
+frame fluxes,
+%
+\begin{equation}
+	\label{eq.final.euler}
+    \mathbf{F}_m(\mathbf{U}) = \mathbf{F}_s(\mathbf{U})
+    	- \mathbf{U}\mathbf{w}^T = 
+    \left(
+    \begin{array}{c}
+        F_\rho' \\
+        F_\mathbf{v}' + \mathbf{w} F_\mathbf{v}'^T \\
+        \mathbf{w}F_\mathbf{v}' + \frac{1}{2}F_\rho' \mathbf{w}^2
+    \end{array}
+    \right).
+\end{equation}
+%
+Thus, after solving the riemann problem in the rest frame of the face the fluxes
+can be easily transformed back into the lab frame. Finally, to make use of equation
+\ref{eq.final.euler} with \ref{eq.taylor} the primitive variables need to transformed
+by the following
+%
+\begin{equation}
+    \mathbf{W}' = \mathbf{W} - 
+    \left(
+    \begin{array}{c}
+        0 \\
+        \mathbf{w} \\
+        0 \\
+    \end{array}
+    \right).
+\end{equation}
+%
+This ensures that the correct values are used in the riemann solver.
 
 \subsubsection{Regularization}
 Allowing the mesh generators to move with the local fluid velocity 
