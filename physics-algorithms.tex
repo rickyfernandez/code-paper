@@ -200,8 +200,7 @@ producing a single scalar value
 \subsubsection{Riemann Solve}
 \label{sec.riemann}
 
-\subsubsection{Flux Computation}
-\subsubsection{Time Integration}
+ 
 
 \subsection{Grid Motion}
 As currently constructed the method outlined in solving the Euler equations are 
@@ -313,6 +312,42 @@ by the following
 %
 This ensures that the correct values are used in the riemann solver.
 
+\subsubsection{Time Integration}
+The time integration using equation \ref{eq.euler.int} with \ref{eq.taylor} is
+a form of the MUSCL-Hancock scheme. For static meshes, the scheme is second
+order accurate in space and time. However, letting the mesh move introduces
+inaccuracies due to ignoring the effect of the mesh deformation during a time 
+step $\Delta t$. This can be corrected by adopting a Runge-Kutta type scheme, that
+uses information from the beginning and the end of a time step instead of mid
+point estimations. Specifically, we employ the method outlined by (Pakmor)
+which updates the conservative variables by the following
+\begin{equation}
+	\begin{array}{rcl}
+		\mathbf{W}_i' & = & \mathbf{W}_i^n + 
+        	\Delta t\frac{\partial\mathbf{W}}{\partial t}, \\
+        \mathbf{r}' & = & \mathbf{r}^n + \Delta t\mathbf{w}^n, \\
+        \mathbf{Q}_i^{n+1} & = & \mathbf{Q}_i^n -
+        	\frac{\Delta t}{2}\left(\sum_j A_{ij}^n\mathbf{\hat{F}}_{ij}^n
+            (\mathbf{W}^n) + \sum_j A_{ij}'\mathbf{\hat{F}}_{ij}'
+            (\mathbf{W}')\right), \\
+        \mathbf{r}^{n+1} & = & \mathbf{r}'.
+    \end{array}
+\end{equation}
+Here we are taking an average of the fluxes from the beginning and the end
+of the time step. The flux at the beginning of the time step is constructed
+with the current state of the mesh with the primitive values extrapolated to
+the face. Then the mesh generators move to their final position
+and the mesh is reconstructed. A new flux is constructed with new geometric
+quantities, however, the primitive values have been extrapolated in time from
+the beginning of the time step. At first glance, it seems that the mesh has
+to be constructed twice per time step. However, the generator velocity is
+treated constant throughout the time step resulting the final mesh to be equal to
+the beginning mesh of the next time step. Thus, the mesh need only to
+be constructed once per time step while the fluxes have to be calculated
+twice per time step. This method is not truly a Runge-Kutta scheme because
+of the time extrapolation but more a mixture of Runge-Kutta and MUSCL-Hancook
+scheme that has been shown to be second order accurate in space and time.
+
 \subsubsection{Regularization}
 Allowing the mesh generators to move with the local fluid velocity 
 $\mathbf{w}_i$ can lead to cells that are elongated or mesh generators close to 
@@ -365,6 +400,62 @@ particle is formed, however, the sign of the normal velocity component is flippe
 This ensures that the mass flux vanishes on the surface of the boundary.
 
 \subsection{Gravity}
+In the presence of gravity the Euler equations \ref{eq.euler} are modified by
+a source term
+%
+\begin{equation}
+    \frac{\partial \mathbf{U}}{\partial t} + \div \mathbf{F} =\left( 
+    \begin{array}{c}
+    	0 \\
+        -\rho\nabla\mathbf{\Phi} \\
+        -\rho\mathbf{v}\nabla\mathbf{\Phi}
+    \end{array}\right).
+\end{equation}
+%
+Note that the gravitational potential $\mathbf{\Phi}$ only affects the
+momentum and energy. The source of the potential can be prescribed by
+an external source or by the self gravity of the gas. In the latter case
+the potential is given by Poisson's equation
+%
+\begin{equation}
+	\nabla^2\mathbf{\Phi} = 4\pi G\rho
+\end{equation}
+For the moment assume that $\mathbf{\Phi}$ is given. Then the equations
+\ref{eq.taylor} and \ref{eq.euler.int} can be easily supplemented to
+include the gravitational force. First, the time derivatives in the
+reconstruction equation are replaced by
+%
+\begin{equation}
+    \frac{\partial\mathbf{W}}{\partial t}  + \mathbf{A}
+    	\left(\mathbf{W}\right)\frac{\partial\mathbf{W}}{\partial\mathbf{r}}
+        = \left(
+        	\begin{array}{c}
+            0 \\
+            -\nabla\mathbf{\Phi} \\
+            0
+            \end{array}
+         \right),
+\end{equation}
+%
+In this case the time extrapolated variables include a gravitational
+component. Second, the momentum and energy is updated during the flux update
+%
+\begin{equation}
+	\begin{array}{rcl}
+        \Delta\mathbf{p}_i & = &
+        	\frac{\Delta t}{2}\left(\sum_j A_{ij}^n\mathbf{\hat{F}}_{ij,\mathbf{p}}^n
+            (\mathbf{W}^n) + \sum_j A_{ij}'\mathbf{\hat{F}}_{ij,\mathbf{p}}'
+            (\mathbf{W}')\right) - \frac{1}{2}\Delta t\left( 
+        	m_i\nabla_i\mathbf{\Phi} + m_i'\nabla_i\mathbf{\Phi}'\right)\\
+        \Delta E_i & = &
+        	\frac{\Delta t}{2}\left(\sum_j A_{ij}^n\mathbf{\hat{F}}_{ij,E}^n
+            (\mathbf{W}^n) + \sum_j A_{ij}'\mathbf{\hat{F}}_{ij,E}'
+            (\mathbf{W}')\right) - \frac{1}{2}\Delta t\left( 
+        	m_i\mathbf{v}_i\nabla_i\mathbf{\Phi} +
+            m_i'\mathbf{v}_i'\nabla_i\mathbf{\Phi}'\right)\\
+    \end{array}
+\end{equation}
+%
 \subsubsection{Constant}
 \subsubsection{Tree}
 
