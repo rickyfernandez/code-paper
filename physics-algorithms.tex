@@ -197,10 +197,19 @@ producing a single scalar value
 \begin{equation}
 	\nabla \phi_i' = \alpha_i \nabla \phi_i
 \end{equation}
+
 \subsubsection{Riemann Solve}
 \label{sec.riemann}
-
+The Riemann problem consist of two constant states separated by an interface.
+The solution to this problem is the formation of three waves emanating from the
+interface. These waves are associated with the eigenvalues of the Euler equations
+and each carry a jump in the characteristic variables. The goal of the Riemann
+solver is to estimate these nonlinear waves and construct the fluxes at the
+interface. Four purposes, we have elected to use the HLL, HLLC, and Exact Riemann
+solvers. 
  
+The HLL solver ignores the contact in solving the Riemann problem. In this case
+only two waves are considered.
 
 \subsection{Grid Motion}
 As currently constructed the method outlined in solving the Euler equations are 
@@ -468,4 +477,12 @@ component. Second, the momentum and energy is updated during the flux update
 
 \subsection{Parallelism}
 \subsubsection{Partitioning}
+For domain decomposition we follow the approach of (Springel) and use
+a space filling curve. Here every particle position is mapped onto a
+1D line. The line is decomposed into a number or roughly equal pieces.
+The number of segments is equal to the number of processor for the
+give run.
+
+In practice, for each particle a Peano-Hilbert key is computed. The key
+
 \subsubsection{Ghost particle copying}
