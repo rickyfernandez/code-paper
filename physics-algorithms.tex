@@ -5,7 +5,7 @@ The spatial and temporal evolution of a compressible fluid is governed by the
 Euler equations. The Euler equations are a set of hyperbolic conservation laws
 governing the density $\rho$, velocity $\mathbf{v}$, and total specific energy
 $E$ (specific kinetic energy $\frac{1}{2}\rho \mathbf{v}^2$ plus specific internal
-energy $u$). These quantities $\mathbf{U}$ and their respected fluxes
+energy $u$). These quantities $\mathbf{U}$ and their respective fluxes
 $\mathbf{F}(\mathbf{U})$, defined through the Euler equations, are conveniently
 expressed in vector form as
 %
@@ -36,8 +36,8 @@ in the form
     \frac{\partial \mathbf{U}}{\partial t} + \div \mathbf{F} = 0.
 \end{equation}
 %
-As currently stated the system of equations are not closed; more variables then
-equations. Thus, a constraint is needed and is supplied by the equation of state
+As stated the system of equations are not closed; there are more variables then
+equations. Thus, a constraint is needed and is supplied by the equation of state, which is typically given by the ideal gas relation
 %
 \begin{equation}
     P = \rho(\gamma - 1)u,
@@ -71,10 +71,10 @@ is the volume integral of $\mathbf{U}_i$,
      \right) = \int_{V_i}\mathbf{U}_i dV,
 \end{equation}
 where $m_i$, $\mathbf{p}_i$ and $E_i$ are cell's total mass, momentum, and
-energy, respectively. Here, an assumption is taken that the cells volume
+energy, respectively. Here, an assumption is taken that the cell's volume
 is a polyhedron such that the surface integral can become a sum over all
 polygon faces. Additionally, time is discretized leading to a finite difference
-update of the cell's quantities
+update of the cell's quantities given by
 %
 \begin{equation}
     \label{eq.flux.update}
@@ -82,22 +82,22 @@ update of the cell's quantities
     \mathbf{\hat{F}}_{ij}^{n+1/2} A_{ij}.
 \end{equation}
 %
-In this expression the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time
-averaged and constant across the cell face. To be able to use equation
-\ref{eq.flux.update} a strategy must be taken to estimate
-$\mathbf{\hat{F}}^{n+1/2}$ and $A_{ij}$. Sections \ref{sec.riemann} and
-\ref{sec.tessellation} respectively will go into detail how these quantities are
+In this expression, the flux $\mathbf{\hat{F}}^{n+1/2}$ is taken to be a time
+average and is constant across the cell face. To be able to use equation
+\ref{eq.flux.update} we must make estimates of
+$\mathbf{\hat{F}}^{n+1/2}$ and $A_{ij}$ to the proper order of accuracy. Sections \ref{sec.riemann} and
+\ref{sec.tessellation}, respectively, will go into detail on how these quantities are
 estimated.
 
 \subsection{Tessellation}
 \label{sec.tessellation}
-As stated in Section \ref{sec.physical.eq}, the Euler equations, as written as
-(\ref{eq.flux.update}), assumes that the cells are of the form of polyhedrons.
-There are many forms of space partitioning that meet this criteria but for this
+As stated in Section \ref{sec.physical.eq}, the Euler equations, as written in
+(\ref{eq.flux.update}), assume that the cells are in the form of polyhedrons.
+There are many ways of partitioning space that meet this criteria but for this
 paper we will restrict our attention to the Voronoi tessellation. The Voronoi
 tessellation partitions the space into a set of disjoint polyhedrons for a
 given set of points. The set of points are called mesh generators and for each
-generator their corresponds a region consisting of all points that are closer
+generator there is a corresponding region consisting of all points that are closer
 to that generator than any other. Thus, for each mesh generating pair there
 lies a polygon that is equidistant. This geometric property will be exploited
 in several ways. For the rest of this paper we will refer to the polyhedra
@@ -107,19 +107,20 @@ polyhedra as faces.
 The creation of the Voronoi tessellation can be performed by first constructing
 the Delaunay triangulation. The Delaunay tessellation is the dual graph of the
 Voronoi tessellation and is defined as the triangulation of points such that
-no point in the set lies inside the circumcircle of any of the triangles in
+no point in the set lies inside the circumcircle of any of the triangles, in
 2d. In 3d the triangles become tetrahedron but the same definition applies.
-Remaining in 2d for simplicity, the points are the vertices's of the triangles.
+Remaining in 2d for simplicity, the points are the vertices of the triangles.
 The dual aspect refers to the fact that each triangle edge corresponds to a
 Voronoi face and each Voronoi vertex corresponds to the center of the
 circumcirlce of the triangle. 
 
 \subsection{Fluid Update}
 \subsubsection{Reconstruction}
-To solve the riemann problem primitive values are needed at the face. As a first
+% Need some introductory text
+To solve the Riemann problem, primitive values are needed at the face. As a first
 choice, cell center values can be used. Although for more accurate results a 
 method is needed to extrapolate the cell center values to the center of mass of 
-the face. A first order, in space and time, can be constructed by taylor 
+the face. At first order, in space and time, can be constructed by Taylor-series 
 expanding the primitive values
 %
 \begin{equation}
@@ -130,7 +131,7 @@ expanding the primitive values
 \end{equation}
 %
 The expansion has two unknowns, the spatial derivative
-$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$ and time derivative
+$\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$ and the time derivative
 $\frac{\partial\mathbf{W}}{\partial t}$. However, both derivatives
 are related through the Euler equations in primitive form
 %
@@ -148,8 +149,8 @@ are related through the Euler equations in primitive form
     \right).
 \end{equation}
 %
-Thus, only the spatial derivatives needed to be calculated. For the
-calculation we follow the method derived from (Springel) which is
+Thus, only the spatial derivatives need to be calculated. For the
+calculation we follow the method presented in (Springel), which is
 summarized below. Given a cell $i$ the components of 
 $\frac{\partial\mathbf{W}}{\partial \mathbf{r}}$, which are gradients
 of the primitive variables, are given by
@@ -164,9 +165,9 @@ of the primitive variables, are given by
 The sum is over all neighbors $j$ of particle $i$, $\phi_i$ and
 $\phi_j$ are the scalar field values at each cell center respectively,
 $\mathbf{r}_{ij} = \mathbf{r}_i - \mathbf{r}_j$ is the separation vector
-with magnitude $r_{ij} =|\mathbf{r}_{ij}|$. As constructed the gradients
+with magnitude $r_{ij} =|\mathbf{r}_{ij}|$. As constructed, the gradients
 are second order in space for smooth flows. However, in the presence of
-shocks numerical instabilities may arise and therefore the reconstruction
+shocks, numerical instabilities may arise and therefore the reconstruction
 must be reduced. To deal with this a slope limiter is used. We employ two
 limiters. The first one is the method used by AREPO and begins with
 the calculation of
