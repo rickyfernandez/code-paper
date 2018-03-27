@@ -43,6 +43,15 @@ at position $x_i$ and $N$ is the number of cells per dimension. Five simulations
 with varying resolution $N=10, 20, 40, 80, 160$. The initial particles where laid out in a
 Cartesian grid and the mesh was allowed to move with the fluid velocity. All simulations
 where performed with linear reconstruction and the HLLC solver.
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.4\textwidth]{figures/acoustic-wave-l1.eps}
+        \caption{L1 norm of acoustic wave problem in 2d. Blue points are results
+        of simulation from different resolutions overlayed by a linear fit showing
+        the convergence is approximately second order.}
+        \label{fig.acoustic}
+    \end{center}
+\end{figure}
 
 
 \subsubsection{Sod Shock Tube}
