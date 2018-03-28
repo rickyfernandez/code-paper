@@ -116,7 +116,7 @@ a constant density of $\rho = 1.0$ and pressure $P = 10^{-6}$ with $\gamma=5/3$.
 allowed to run to time $t=0.06$ using linear reconstruction and the HLLC solver.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.8\textwidth]{figures/sedov_compare.eps}
+        \includegraphics[width=0.9\textwidth]{figures/sedov_compare.eps}
         \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
         Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
         $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
@@ -126,7 +126,21 @@ allowed to run to time $t=0.06$ using linear reconstruction and the HLLC solver.
 \end{figure}
 Figure \ref{fig.sedov} shows the cell density as a function of radial distance from the center of the
 explosion. It is noted that shock is well resolved by the cells as the mesh has deformed in such a way
-that the shock front contains a large amount of cells. This is evident in ...
+that the shock front contains a large amount of cells which is evident in
+Figure \ref{fig.sedov_panel}.
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=1.0\textwidth]{figures/sedov_panel.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
+        while the red line is the exact solution.}
+        \label{fig.sedov_panel}
+    \end{center}
+\end{figure}
+The center cell, where the engery is deposited, remains stationary while the
+cells around it move raidially outward. The cells exterior to the shock remain
+stationary untill they are swept and compressed by the shock.
 
 \subsubsection{Kelvin Helmholtz}
 
