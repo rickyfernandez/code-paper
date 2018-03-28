@@ -5,7 +5,7 @@
 \subsection{Linear Wave}
 Sound waves provide the mechanism to transport disturbances in a fluid. An
 elementary test problem is the ability maintain wave propagation of small
-disturbances . Given a fluid in equilibrium with constant density $\rho_0$,
+disturbances. Given a fluid in equilibrium with constant density $\rho_0$,
 pressure $p_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
 \begin{equation}
 	\begin{array}{rcl}
@@ -15,10 +15,9 @@ pressure $p_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
     \end{array}
 \end{equation}
 and maintaining terms to first order in the Euler equations produce the wave
-equation for each variable with a wave propagation speed equal to the fluids sound speed 
-$c_s$ suffice the perturbations are small. Thus, setting a small disturbance will propagate 
-with a finite velocity maintaining 
-its form.
+equation for each variable with a wave propagation speed equal to the fluid's sound speed 
+$c_s$. Thus, setting a small disturbance 
+will propagate with a finite velocity maintaining its form.
 
 We set up a 2d box of unit length with constant $\rho_0=1.0$, $p_0=3/5$, $\mathbf{v}=0$,
 and $\gamma=5/3$ with periodic boundary conditions. A sinusoidal wave in the x direction of 
@@ -32,7 +31,7 @@ $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the f
     \end{array}
 \end{equation}
 The values chosen produce waves traveling rightward with a velocity of 1. The simulation is
-ran for 1 time unit such that the waves return to its initial position at time $t=0$. 
+ran for 1 time unit such that the waves return to its' initial position at time $t=0$. 
 Moreover, we study the convergence behavior by comparing the final state of the density to 
 the initial density by computing the $L1$ norm,
 \begin{equation}
@@ -47,14 +46,45 @@ where performed with linear reconstruction and the HLLC solver.
     \begin{center}
         \includegraphics[width=0.4\textwidth]{figures/acoustic-wave-l1.eps}
         \caption{L1 norm of acoustic wave problem in 2d. Blue points are results
-        of simulation from different resolutions overlayed by a linear fit showing
+        of simulation from different resolutions overlaid by a linear fit showing
         the convergence is approximately second order.}
         \label{fig.acoustic}
     \end{center}
 \end{figure}
-
+Figure \ref{fig.acoustic} shows the $L1$ norm as a function of grid cells per dimension.
+As expected, the convergence rate is approximately second order in time and space for
+this smooth problem. In the presence of shocks or other discontinuities it is not expected
+to have such convergence.
 
 \subsubsection{Sod Shock Tube}
+To examine the ability of the code to handle shock propagation we perform the Sod problem. The problem
+consists of two different constant states at rest separated at the midpoint of the x axis. A discontinuity
+exist in the density and pressure at the midpoint. At $t=0$ the high density region flows into the
+lower density region. The flow produces a rarefaction, discontinuity, and a shock wave emanating from the
+density discontinuity. Thus, this problem creates a great test for the codes ability to capture the tree
+wave types.
+
+For our initial setup we use a unit box in 2d with reflective boundary conditions, linear
+reconstruction and the HLLC solver. The discontinuity lies along the x axis at 0.5.
+The density and pressure are defined as follows
+\begin{equation}
+	\rho = \left\{
+      \begin{array}{@{}ll@{}}
+        	1.0 & \text{for}\ x \leq 0 \\
+            0.125 & \text{for}\ x > 0
+    	\end{array}\right.
+\end{equation}
+and
+\begin{equation}
+	p = \left\{
+      \begin{array}{@{}ll@{}}
+        	1.0 & \text{for}\ x \leq 0 \\
+            0.1 & \text{for}\ x > 0
+    	\end{array}\right.
+\end{equation}
+with $\gamma = 1.4$. The particles are laid out in a Cartesian grid and the simulation is evolved
+until $t=0.15$. The number of particles per dimension is chosen to be $N=60$.
+
 \subsubsection{Sedov}
 \subsubsection{Kelvin Helmholtz}
 
