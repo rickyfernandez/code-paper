@@ -83,7 +83,20 @@ and
     	\end{array}\right.
 \end{equation}
 with $\gamma = 1.4$. The particles are laid out in a Cartesian grid and the simulation is evolved
-until $t=0.15$. The number of particles per dimension is chosen to be $N=60$.
+until $t=0.15$. The number of particles per dimension is chosen to be $N=120$.
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.4\textwidth]{figures/sod_2d.eps}
+        \caption{Profiles of density, velocity and pressure of the Sod simulation. Light blue points are the simulation
+        while the red line is the exact solution.}
+        \label{fig.sod}
+    \end{center}
+\end{figure}
+Figure \ref{fig.sod} plots all the points of the simulation for density, the x-component of
+the velocity and pressure. The red line is the analytical solution. We see the shock is
+well resolved as is the contact discontinuity. Further the lagrangian nature of the code
+can be seen as many particles have been squeezed between the contact discontinuity and the
+shock front while particles in the rarefaction have been spread out.
 
 \subsubsection{Sedov}
 \subsubsection{Kelvin Helmholtz}
