@@ -94,11 +94,27 @@ until $t=0.15$. The number of particles per dimension is chosen to be $N=120$.
 \end{figure}
 Figure \ref{fig.sod} plots all the points of the simulation for density, the x-component of
 the velocity and pressure. The red line is the analytical solution. We see the shock is
-well resolved as is the contact discontinuity. Further the lagrangian nature of the code
+well resolved as is the contact discontinuity. Further the Lagrangian nature of the code
 can be seen as many particles have been squeezed between the contact discontinuity and the
 shock front while particles in the rarefaction have been spread out.
 
 \subsubsection{Sedov}
+Another test generates a shock is the Sedov blast wave problem. In this problem a homogeneous
+gas is injected with a large amount of energy in a point-like region at the center of the domain.
+A spherical shock is created emanating from the center. The shock propagates radially outward
+sweeping mass into a thin shell and creating a cavity behind the shock. The problem has a well known
+analytical self-similar solution cite. Applying the Rankine–Hugoniot at the shock front the density
+jumps to a maximum compression of
+\begin{equation}
+	\rho_{max}/\rho = (\gamma + 1)/(\gamma - 1),
+\end{equation}
+for $\gamma = 5/3$ this amounts to a max value of 4.
+
+We consider the $2D$ and $3D$ case. A unit box is setup with particles in a Cartesian grid of size
+$45\times 45$ and $45 \times 45 \times 45$ for $2D$ and $3D$ respectively. The stationary gas has
+a constant density of $\rho = 1.0$ and pressure $P = 10^{-6}$ with $\gamma=5/3$. The simulation is
+allowed to run to time $t=0.06$ using linear reconstruction and the HLLC solver.
+
 \subsubsection{Kelvin Helmholtz}
 
 \subsection{Gravity Tests}
