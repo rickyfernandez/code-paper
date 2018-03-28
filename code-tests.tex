@@ -106,22 +106,27 @@ sweeping mass into a thin shell and creating a cavity behind the shock. The prob
 analytical self-similar solution cite. Applying the Rankine–Hugoniot at the shock front the density
 jumps to a maximum compression of
 \begin{equation}
-	\rho_{max}/\rho = (\gamma + 1)/(\gamma - 1),
+	\rho_{\mathrm{max}}/\rho = (\gamma + 1)/(\gamma - 1),
 \end{equation}
 for $\gamma = 5/3$ this amounts to a max value of 4.
 
-We consider the $2D$ and $3D$ case. A unit box is setup with particles in a Cartesian grid of size
-$45\times 45$ and $45 \times 45 \times 45$ for $2D$ and $3D$ respectively. The stationary gas has
+We consider the 2D and 3D case. A unit box is setup with particles in a Cartesian grid of size
+$45\times 45$ and $45 \times 45 \times 45$ for 2D and 3D respectively. The stationary gas has
 a constant density of $\rho = 1.0$ and pressure $P = 10^{-6}$ with $\gamma=5/3$. The simulation is
 allowed to run to time $t=0.06$ using linear reconstruction and the HLLC solver.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/sedov_compare.eps}
-        \caption{Profiles of density, velocity and pressure of the Sod simulation. Light blue points are the simulation
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
         while the red line is the exact solution.}
         \label{fig.sedov}
     \end{center}
 \end{figure}
+Figure \ref{fig.sedov} shows the cell density as a function of radial distance from the center of the
+explosion. It is noted that shock is well resolved by the cells as the mesh has deformed in such a way
+that the shock front contains a large amount of cells. This is evident in ...
 
 \subsubsection{Kelvin Helmholtz}
 
