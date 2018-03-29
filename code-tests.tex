@@ -211,11 +211,12 @@ stationary until they are swept and compressed by the shock.
 
 \subsection{Gravity Tests}
 \subsection{Plummer sphere}
-The Plummer sphere cite is a model to describe the distribution of stars and in a cluster
+The Plummer sphere cite is a model that can be used to describe the distribution of stars and in a cluster
 and is commonly used to test gravity solvers. The Plummer sphere, i.e. a polytrope of index 5,
 has a density profile of the from
 \begin{equation}
 	\rho (r) = \frac{3 M}{4\pi R^3} \left(1 + (r/R)^2\right)^{-5/2},
+    \label{eq.plummer}
 \end{equation}
 where $M$ is the total mass of the cluster and $R$ is a scale parameter which sets the
 size of the cluster. The system is in steady state with an isotropic velocity distribution.
@@ -224,9 +225,10 @@ advance the system in time. We expect the system to stay in steady state therefo
 the initial density distribution with the final state of the system.
 
 For our test we chose the parameters of the Plummer sphere to be $M=1,000$ and $R=1$ with
-$G=1$. Then we sampled 10,000 particles using the the rejection technique outline in
+$G=1$. We then sampled 10,000 particles using the the rejection technique outlined in
 cite to set the position and velocities. The system is allowed to evolve to time $t=1$
-which is about ten dynamical times.
+which is roughly ten dynamical times. The gravitational tree used an opening angle 0.4
+and smoothing parameter of 0.03.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/plummer.eps}
@@ -234,13 +236,20 @@ which is about ten dynamical times.
         Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
         $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
         while the red line is the exact solution.}
-        \label{fig.sedov_panel}
+        \label{fig.plummer}
     \end{center}
 \end{figure}
+The left panel of Figure \ref{fig.plummer} shows the density profile at the initial and final 
+time of the simulation with equation \ref{eq.plummer} overlaid as a reference. The density is calculated
+by dividing the space by spherical shells, binning and dividing by the volume. It is clearly shown that
+at the final time the particles remain in steady state with their positions matching the initial
+distribution. The right panel of \ref{fig.plummer} shows the evolution of the relative error of the
+total energy of the system. The error stays well below $5\times 10^{-4}$ with a final error of
+$2\times 10^{-4}$, entailing the solver has accurately maintained the total energy.
 
 \subsubsection{Rayleigh Taylor}
-\subsubsection{Two body}
-\subsubsection{Evrard Collapse}
 
-\subsection{Chemistry Tests}
-\subsubsection{Uniform Cooling}
+\subsubsection{Evrard Collapse}
+The final test is the Evrards collapse problem which tests the coupling of self-gravity and hydrodynamics.
+The problem consists of a sphere of gas with mass $M=1$ and radius $R=1$ with a density profile of
+the form
