@@ -2,7 +2,7 @@
 \subsection{Unit Tests}
 
 \subsection{Hydro Tests}
-\subsection{Linear Wave}
+\subsubsection{Linear Wave}
 Sound waves provide the mechanism to transport disturbances in a fluid. An
 elementary test problem is the ability maintain wave propagation of small
 disturbances. Given a fluid in equilibrium with constant density $\rho_0$,
@@ -17,7 +17,8 @@ pressure $p_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
 and maintaining terms to first order in the Euler equations produce the wave
 equation for each variable with a wave propagation speed equal to the fluid's sound speed 
 $c_s$. Thus, setting a small disturbance 
-will propagate with a finite velocity maintaining its form.
+will propagate with a finite velocity maintaining its form as along as the initial
+disturbances are relatively small.
 
 We set up a 2d box of unit length with constant $\rho_0=1.0$, $p_0=3/5$, $\mathbf{v}=0$,
 and $\gamma=5/3$ with periodic boundary conditions. A sinusoidal wave in the x direction of 
@@ -31,74 +32,79 @@ $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the f
     \end{array}
 \end{equation}
 The values chosen produce waves traveling rightward with a velocity of 1. The simulation is
-ran for 1 time unit such that the waves return to its' initial position at time $t=0$. 
+evolved for 1 time unit such that the waves return to its' initial position at time $t=0$. 
 Moreover, we study the convergence behavior by comparing the final state of the density to 
 the initial density by computing the $L1$ norm,
 \begin{equation}
 	L1 = \frac{1}{N^2}\sum_i \left| \rho_i - \rho(x_i) \right|,
 \end{equation}
 where $\rho_i$ is final density at position $x_i$ and $\rho(x_i)$ is the density at t=0
-at position $x_i$ and $N$ is the number of cells per dimension. Five simulations where ran
+at position $x_i$ and $N$ is the number of cells per dimension. Five simulations where evolved
 with varying resolution $N=10, 20, 40, 80, 160$. The initial particles where laid out in a
 Cartesian grid and the mesh was allowed to move with the fluid velocity. All simulations
 where performed with linear reconstruction and the HLLC solver.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.4\textwidth]{figures/acoustic-wave-l1.eps}
-        \caption{L1 norm of acoustic wave problem in 2d. Blue points are results
+        \includegraphics[width=0.4\textwidth]{figures/linear-wave-l1.eps}
+        \caption{L1 norm of linear wave problem in 2d. Blue points are results
         of simulation from different resolutions overlaid by a linear fit showing
         the convergence is approximately second order.}
-        \label{fig.acoustic}
+        \label{fig.linear-wave}
     \end{center}
 \end{figure}
-Figure \ref{fig.acoustic} shows the $L1$ norm as a function of grid cells per dimension.
+Figure \ref{fig.linear-wave} shows the $L1$ norm as a function of grid cells per dimension.
 As expected, the convergence rate is approximately second order in time and space for
 this smooth problem. In the presence of shocks or other discontinuities it is not expected
 to have such convergence.
 
-\subsubsection{Sod Shock Tube}
+\subsubsection{Sod shock tube}
 To examine the ability of the code to handle shock propagation we perform the Sod problem. The problem
 consists of two different constant states at rest separated at the midpoint of the x axis. A discontinuity
 exist in the density and pressure at the midpoint. At $t=0$ the high density region flows into the
-lower density region. The flow produces a rarefaction, discontinuity, and a shock wave emanating from the
-density discontinuity. Thus, this problem creates a great test for the codes ability to capture the tree
-wave types.
+lower density region. The flow produces a rarefaction, contact discontinuity, and a shock wave emanating
+from the density discontinuity. Thus, this problem creates a great test for the codes ability to capture the
+three wave types.
 
-For our initial setup we use a unit box in 2d with reflective boundary conditions, linear
+For our initial setup we use a unit box with reflective boundary conditions, linear
 reconstruction and the HLLC solver. The discontinuity lies along the x axis at 0.5.
 The density and pressure are defined as follows
 \begin{equation}
 	\rho = \left\{
       \begin{array}{@{}ll@{}}
-        	1.0 & \text{for}\ x \leq 0 \\
-            0.125 & \text{for}\ x > 0
+        	1.0 & \text{for}\ x \leq 0.5 \\
+            0.125 & \text{for}\ x > 0.5
     	\end{array}\right.
 \end{equation}
 and
 \begin{equation}
 	p = \left\{
       \begin{array}{@{}ll@{}}
-        	1.0 & \text{for}\ x \leq 0 \\
-            0.1 & \text{for}\ x > 0
+        	1.0 & \text{for}\ x \leq 0.5 \\
+            0.1 & \text{for}\ x > 0.5
     	\end{array}\right.
 \end{equation}
 with $\gamma = 1.4$. The particles are laid out in a Cartesian grid and the simulation is evolved
-until $t=0.15$. The number of particles per dimension is chosen to be $N=120$.
+until $t=0.15$. The number of particles per dimension is chosen to be $N=100$ and $N=45$ for 2D
+and 3D respectively. This allows a comparison of a high and low resolution run.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.4\textwidth]{figures/sod_2d.eps}
-        \caption{Profiles of density, velocity and pressure of the Sod simulation. Light blue points are the simulation
-        while the red line is the exact solution.}
+        \includegraphics[width=0.4\textwidth]{figures/sod_3d.eps}
+        \caption{Profiles of density, velocity and pressure of the Sod simulation. Left 2D run using 
+        a total of $100\times100$ particles. Right 3D run using a total of $45\times45\times45$.
+        Light blue points are the simulation while the red line is the exact solution.}
         \label{fig.sod}
     \end{center}
 \end{figure}
 Figure \ref{fig.sod} plots all the points of the simulation for density, the x-component of
-the velocity and pressure. The red line is the analytical solution. We see the shock is
-well resolved as is the contact discontinuity. Further the Lagrangian nature of the code
-can be seen as many particles have been squeezed between the contact discontinuity and the
-shock front while particles in the rarefaction have been spread out.
+the velocity and pressure. The red line is the analytical solution. For the 2D simulation we can see
+the shock is well resolved as is the contact discontinuity. Further the Lagrangian nature of
+the code can be seen as many particles have been squeezed between the contact discontinuity and the
+shock front while particles in the rarefaction have been spread out. For the 3D, lower resolution
+run, the code catches all three waves. Although, the the contanct discontinuity wave has been
+smoothed.
 
-\subsection{Explosion}
+\subsubsection{Explosion}
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/explosion_2d.eps}
@@ -123,10 +129,10 @@ Figure \ref{fig.explosion_2d} shows the density map and density profile. Clearly
 density matches the analytical solution in red. Further, the solution captures all three waves
 even though the mesh was built in a random fashion. This an important difference over Eulerian
 codes, since Lagrangian codes are not constrained to any initial particle placement. Therefore
-one can reach better accuracy by placing the particles in way that exploit the problem. We will
+one can reach better accuracy by placing the particles in way that exploits the problem. We will
 see a later example of this in the Evrards problem.
 
-\subsection{Gresho vortex}
+\subsubsection{Gresho vortex}
 Our next problem will test stability of the code. Gresho and Chan cite, introduced an interesting
 problem to test for conservation of angular momentum. A vortex in a unit 2D box with constant 
 density $\rho=1$ is setup with the following angular velocity
@@ -207,10 +213,11 @@ The center cell, where the energy is deposited, remains stationary while the
 cells around it move radially outward. The cells exterior to the shock remain
 stationary until they are swept and compressed by the shock.
 
-\subsubsection{Kelvin Helmholtz}
+\subsubsection{Kelvin-Helmholtz}
 
 \subsection{Gravity Tests}
-\subsection{Plummer sphere}
+\subsubsection{Two body}
+\subsubsection{Plummer sphere}
 The Plummer sphere cite is a model that can be used to describe the distribution of stars and in a cluster
 and is commonly used to test gravity solvers. The Plummer sphere, i.e. a polytrope of index 5,
 has a density profile of the from
