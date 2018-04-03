@@ -222,6 +222,48 @@ stationary until they are swept and compressed by the shock.
 
 \subsection{Gravity Tests}
 \subsubsection{Two body}
+Our first problem in testing our gravity solver is a simple two body problem, two particles interacting
+with through their gravitational force. Although, this problem does not really test the 
+implementation of the gravity tree, since only two leaves will be constructed
+in the tree and it is most likely that the leaves will interact with each other bypassing the node 
+moments, it does test the gravity kernel and stability of the leap frog integrator.
+
+For this problem an exact solution exists by reducing the two body to a single body. Given
+two particles with masses $m_1$ and $m_2$ with positions $\vec{r}_1$ and $\vec{r}_2$ the equation of motion for
+the reduced mass
+\begin{equation}
+	\frac{1}{\mu} = \frac{1}{m_1} + \frac{1}{m_2}
+\end{equation}
+is
+\begin{equation}
+	\mu\frac{d^2 \vec{r}}{dt^2} = -\frac{G m_1 m_2}{r^2}\hat{r},
+    \label{eq.reduced-force}
+\end{equation}
+where $\vec{r}$ is the separation vector $\vec{r}_1 - \vec{r}_2$. Equation \ref{eq.reduced-force} can be
+transformed to polar coordinates giving the solution
+\begin{equation}
+	r = \frac{a(1-\epsilon^2)}{1-\epsilon cos(\theta)}
+\end{equation}
+for initial conditions $a$ and $\epsilon$. To recover the particles positions, a final transformation
+of the following form
+\begin{equation}
+	\begin{array}{rcl}
+		\vec{r}_1 & = & \frac{m_1}{m}\vec{r}\\
+    	\vec{r}_2 & = & -\frac{m_2}{m}\vec{r}
+    \end{array}
+\end{equation}
+is used where $m=m_1 + m_2$. The initial position and velocity of the particles can be parameterized by $a$
+$\epsilon$, and $q=m_1/m_2$
+\begin{equation}
+	\begin{array}{rcl}
+    	\vec{r}_1 & = & a\frac{1-\epsilon}{1+q} \hat{x}\\
+        \vec{v}_1 & = & \frac{1}{1+q}\sqrt{\frac{1+\epsilon}{1-\epsilon}}\sqrt{\frac{G(m_1 + m_2)}{a}} \hat{y}\\
+        \vec{r}_2 & = & -q \vec{r}_1\\
+        \vec{v}_2 & = & -q \vec{v}_1
+        
+    \end{array}
+\end{equation}
+
 \subsubsection{Plummer sphere}
 The Plummer sphere cite is a model that can be used to describe the distribution of stars and in a cluster
 and is commonly used to test gravity solvers. The Plummer sphere, i.e. a polytrope of index 5,
