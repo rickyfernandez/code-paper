@@ -222,13 +222,13 @@ stationary until they are swept and compressed by the shock.
 
 \subsection{Gravity Tests}
 \subsubsection{Two body}
-Our first problem in testing our gravity solver is a simple two body problem, two particles interacting
-with through their gravitational force. Although, this problem does not really test the 
+Our first problem, in testing our gravity solver, is a simple two body problem where two particles
+interact with each other through their gravitational force. Although, this problem does not really test the 
 implementation of the gravity tree, since only two leaves will be constructed
 in the tree and it is most likely that the leaves will interact with each other bypassing the node 
 moments, it does test the gravity kernel and stability of the leap frog integrator.
 
-For this problem an exact solution exists by reducing the two body to a single body. Given
+For this problem an exact solution exists by reducing it to a single body. Given
 two particles with masses $m_1$ and $m_2$ with positions $\vec{r}_1$ and $\vec{r}_2$ the equation of motion for
 the reduced mass
 \begin{equation}
@@ -244,25 +244,46 @@ transformed to polar coordinates giving the solution
 \begin{equation}
 	r = \frac{a(1-\epsilon^2)}{1-\epsilon cos(\theta)}
 \end{equation}
-for initial conditions $a$ and $\epsilon$. To recover the particles positions, a final transformation
-of the following form
+for initial conditions $a$ and $\epsilon$. The overall system evolves with a period of
+\begin{equation}
+    T = \sqrt{\frac{4\pi^2 a^3}{G m}},
+\end{equation}
+where $m=m_1 + m_2$. To recover the particles positions, a final transformation
+of the form
 \begin{equation}
 	\begin{array}{rcl}
 		\vec{r}_1 & = & \frac{m_1}{m}\vec{r}\\
     	\vec{r}_2 & = & -\frac{m_2}{m}\vec{r}
     \end{array}
 \end{equation}
-is used where $m=m_1 + m_2$. The initial position and velocity of the particles can be parameterized by $a$
-$\epsilon$, and $q=m_1/m_2$
+is used. The initial position and velocity of the particles can be parameterized by $a$,
+$\epsilon$ and $q=m_1/m_2$
 \begin{equation}
 	\begin{array}{rcl}
     	\vec{r}_1 & = & a\frac{1-\epsilon}{1+q} \hat{x}\\
-        \vec{v}_1 & = & \frac{1}{1+q}\sqrt{\frac{1+\epsilon}{1-\epsilon}}\sqrt{\frac{G(m_1 + m_2)}{a}} \hat{y}\\
+        \vec{v}_1 & = & \frac{1}{1+q}\sqrt{\frac{1+\epsilon}{1-\epsilon}}\sqrt{\frac{Gm}{a}} \hat{y}\\
         \vec{r}_2 & = & -q \vec{r}_1\\
-        \vec{v}_2 & = & -q \vec{v}_1
-        
+        \vec{v}_2 & = & -q \vec{v}_1.
     \end{array}
 \end{equation}
+
+We setup the particles with parameter values $a=0.5$ and $\epsilon=0.25/0.75$ with $G=1$ and allow
+the simulation to evolve for 10 periods. The time step is held fixed with a value of $dt=T/1000$.
+In Figure \ref{fig.two_body} we show the trajectory for both particles as well as the evolution of
+the relative total energy error. We clearly see that both trajectories remain along the exact solution
+signifying the stability of the leap frog integrator. Further we see that the relative total energy
+error remains bounded by zero and $-1.1\times10^{-4}$ indicating that the total energy remains
+accurately conserved.
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{figures/two_body.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
+        while the red line is the exact solution.}
+        \label{fig.two_body}
+    \end{center}
+\end{figure}
 
 \subsubsection{Plummer sphere}
 The Plummer sphere cite is a model that can be used to describe the distribution of stars and in a cluster
@@ -305,5 +326,34 @@ $2\times 10^{-4}$, entailing the solver has accurately maintained the total ener
 
 \subsubsection{Evrard Collapse}
 The final test is the Evrards collapse problem which tests the coupling of self-gravity and hydrodynamics.
-The problem consists of a sphere of gas with mass $M=1$ and radius $R=1$ with a density profile of
-the form
+The problem consists of an initially non-rotating isothermal gas sphere with mass $M=1$ and radius $R=1$
+with a density 
+\begin{equation}
+	\rho(r) = \left\{
+      \begin{array}{@{}ll@{}}
+            1/\left(2\pi r\right) & \text{for}\ r \leq 1 \\
+            0 & \text{for}\ r > 1
+    	\end{array}\right.
+\end{equation}
+and pressure
+\begin{equation}
+	P(r) = \left\{
+      \begin{array}{@{}ll@{}}
+            0.05 /\left(3\pi r\right) & \text{for}\ r \leq 1 \\
+            0 & \text{for}\ r > 1.
+    	\end{array}\right.
+\end{equation}
+The gravitational constant is set to $G=1$ and $\gamma=5/3$. The evolution of the sphere begins
+with mass falling towards the center due to self-gravity. The pressure at the center rises and
+produces a shock traveling outward through the infalling gas. The final state of the gas is a
+spherical distribtion in hydrostatic virial equilibrium.
+
+We setup an initial cartesian grid of size $33\times 33\times 33$ particles. Due to the nature
+of the $1/r$ density profile, a cartesian mesh will not resolve the high density values unless
+the resolution is sufficiently increased. However we have complete freedom on how to the particles
+are initially setup. Therefore, we transform particles radially inside the sphere by the following
+\begin{equation}
+    r_{\mathrm{new}} = r_{\mathrm{old}}^{3/2}.
+\end{equation}
+Such a transformation maps a grid of equally spaced particles with uniform density to
+a set of particles spaced in such a way that the unifrom density follows a $1/r$ profile. 
