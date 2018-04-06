@@ -209,7 +209,7 @@ Figure \ref{fig.sedov_panel}.
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/sedov_panel.eps}
         \caption{Evolution of the density at several times. The initial cell with the energy
-        imparted remains stationary as the cells around it move raidally outward. The cells at
+        imparted remains stationary as the cells around it move radially outward. The cells at
         the shock are compressed allowing for better resolution.}
         \label{fig.sedov_panel}
     \end{center}
@@ -278,9 +278,9 @@ accurately conserved.
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/two_body.eps}
         \caption{Left: Trajectories of the two body problem for ten periods. Clearly
-        both particles remain in their orbital path shown in red signfying the stability
+        both particles remain in their orbital path shown in red signifying the stability
         of the leap frog integrator. Right: Corresponding relative total energy error.
-        The total energy remains accuratley conserved as the worst relative error is
+        The total energy remains accurately conserved as the worst relative error is
         $-1.1\times10^{4}$.}
         \label{fig.two_body}
     \end{center}
@@ -324,6 +324,40 @@ total energy of the system. The error stays well below $5\times 10^{-4}$ with a 
 $2\times 10^{-4}$, entailing the solver has accurately maintained the total energy.
 
 \subsubsection{Rayleigh Taylor}
+Our first hydrodynamic problem to include gravity is the Rayleigh Taylor instability problem.
+The problem consists of dense fluid over a lighter fluid in the presence of a uniform 
+vertical gravitational field. A perturbation is placed in the vertical direction causing the
+dense field to sink while the lighter rises through buoyancy.
+
+A rectangular domain of the size $[1\times3]$ is chosen with the gravitational force in the
+$y$-direction with strength of $g=1$. The initial setup of the density
+is
+\begin{equation}
+	\rho = \left\{
+      \begin{array}{@{}ll@{}}
+            1 & \text{for}\ y \leq 1.5 \\
+            2 & \text{for}\ 5 > 1.5,
+    	\end{array}\right.
+\end{equation}
+while the pressure is
+\begin{equation}
+	P = \left\{
+      \begin{array}{@{}ll@{}}
+            10 - y & \text{for}\ y \leq 1.5 \\
+            11.5 + 2(y-1.5) & \text{for}\ 5 > 1.5,
+    	\end{array}\right.
+\end{equation}
+such that the system is initially in hydrostatic equilibrium. A perturbation is applied
+to the $y$-velocity
+\begin{equation}
+	v_y = \mathrm{cos}\left(2\pi x\right)\exp{-(y-1.5)^2/0.1}
+\end{equation}
+We set $\gamma=1$ and let the system evolve to $t=3.0$. Although without an implementation
+of viscosity there is no one correct solution that all codes converge to. However, we can
+visually inspect if our simulation share the same characteristics of another established
+code. In Figure we that the single mode is very similar to the results from cite
+
+We see the mode has the characteristics of
 
 \subsubsection{Evrard Collapse}
 The final test is the Evrards collapse problem which tests the coupling of self-gravity and hydrodynamics.
@@ -346,24 +380,24 @@ and pressure
 \end{equation}
 The gravitational constant is set to $G=1$ and $\gamma=5/3$. The evolution of the sphere begins
 with mass falling towards the center due to self-gravity. The pressure at the center rises and
-produces a shock traveling outward through the infalling gas. The final state of the gas is a
-spherical distribtion in hydrostatic virial equilibrium.
+produces a shock traveling outward through the in-falling gas. The final state of the gas is a
+spherical distribution in hydrostatic virial equilibrium.
 
-We setup an initial cartesian grid of size $33\times 33\times 33$ particles. Due to the nature
-of the $1/r$ density profile, a cartesian mesh will not resolve the high density values unless
+We setup an initial Cartesian grid of size $33\times 33\times 33$ particles. Due to the nature
+of the $1/r$ density profile, a Cartesian mesh will not resolve the high density values unless
 the resolution is sufficiently increased. However we have complete freedom on how to the particles
 are initially setup. Therefore, we transform particles radially inside the sphere by the following
 \begin{equation}
     r_{\mathrm{new}} = r_{\mathrm{old}}^{3/2}.
 \end{equation}
 Such a transformation maps a grid of equally spaced particles with uniform density to
-a set of particles spaced in such a way that the unifrom density follows a $1/r$ profile. 
+a set of particles spaced in such a way that the uniform density follows a $1/r$ profile. 
 
 The radial averaged density, radial velocity and entropy are shown in Figure at time $t=0.81$
-when the shock has formed and is traveling outward. We see all profiles adquately follow the
+when the shock has formed and is traveling outward. We see all profiles adequately follow the
 exact solution in red for this low resolution run. Further we see that there is significant
 error in the conservation of energy Figure. This is expected as noted by Springel. The 
-discrepency arises from the gravitational work term which ignores the motion of mass
-exchanged by adjacent cells. Springel proposed a new formulaton for then energy equation
+discrepancy arises from the gravitational work term which ignores the motion of mass
+exchanged by adjacent cells. Springel proposed a new formulation for then energy equation
 that results in better energy conservation. This updated method will be added in the next
-revsion of the code.
+revision of the code.
