@@ -6,11 +6,11 @@
 Sound waves provide the mechanism to transport disturbances in a fluid. An
 elementary test problem is the ability maintain wave propagation of small
 disturbances. Given a fluid in equilibrium with constant density $\rho_0$,
-pressure $p_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
+pressure $P_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
 \begin{equation}
 	\begin{array}{rcl}
 		\rho & = & \rho_0 + \delta\rho(x,t) \\
-   		 p & = & p_0 + \delta p(x,t) \\
+   		 P & = & P_0 + \delta p(x,t) \\
     	\mathbf{v} & = & \delta\mathbf{v}(x,t),
     \end{array}
 \end{equation}
@@ -20,7 +20,7 @@ $c_s$. Thus, setting a small disturbance
 will propagate with a finite velocity maintaining its form as along as the initial
 disturbances are relatively small.
 
-We set up a 2d box of unit length with constant $\rho_0=1.0$, $p_0=3/5$, $\mathbf{v}=0$,
+We set up a 2d box of unit length with constant $\rho_0=1.0$, $P_0=3/5$, $\mathbf{v}=0$,
 and $\gamma=5/3$ with periodic boundary conditions. A sinusoidal wave in the x direction of 
 the form $\delta\rho(x,t) = Asin(kx + wt)$ with $k=w=2\pi$ and $A=10^{-6}$ is added at time 
 $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the following
@@ -28,7 +28,7 @@ $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the f
 	\begin{array}{rcl}
         \delta \mathbf{v}(x,0) & = & \left(\frac{w}{k}\right)\delta
         	\rho(x,0)/\rho_0\mathbf{\hat{x}}\\
-        \delta p(x,0) & = & \left(\frac{w}{k}\right)^2\delta\rho(x,0).
+        \delta P(x,0) & = & \left(\frac{w}{k}\right)^2\delta\rho(x,0).
     \end{array}
 \end{equation}
 The values chosen produce waves traveling rightward with a velocity of 1. The simulation is
@@ -58,7 +58,7 @@ this smooth problem. In the presence of shocks or other discontinuities it is no
 to have such convergence.
 
 \subsubsection{Sod shock tube}
-To examine the ability of the code to handle shock propagation we perform the Sod problem. The problem
+To examine the ability of the code to handle shock propagation we perform the Sod shock tube problem. The problem
 consists of two different constant states at rest separated at the midpoint of the x axis. A discontinuity
 exist in the density and pressure at the midpoint. At $t=0$ the high density region flows into the
 lower density region. The flow produces a rarefaction, contact discontinuity, and a shock wave emanating
@@ -77,7 +77,7 @@ The density and pressure are defined as follows
 \end{equation}
 and
 \begin{equation}
-	p = \left\{
+	P = \left\{
       \begin{array}{@{}ll@{}}
         	1.0 & \text{for}\ x \leq 0.5 \\
             0.1 & \text{for}\ x > 0.5
@@ -90,26 +90,28 @@ and 3D respectively. This allows a comparison of a high and low resolution run.
     \begin{center}
         \includegraphics[width=0.4\textwidth]{figures/sod_2d.eps}
         \includegraphics[width=0.4\textwidth]{figures/sod_3d.eps}
-        \caption{Profiles of density, velocity and pressure of the Sod simulation. Left 2D run using 
-        a total of $100\times100$ particles. Right 3D run using a total of $45\times45\times45$.
+        \caption{Profiles of density, x-component of the velocity and pressure of the Sod simulation. Left 2D run using 
+        a total of $100\times100$ particles. Right 3D run using a total of $45\times45\times45$,
+        we only plot a slice of particles defined by $z=0$.
         Light blue points are the simulation while the red line is the exact solution.}
         \label{fig.sod}
     \end{center}
 \end{figure}
-Figure \ref{fig.sod} plots all the points of the simulation for density, the x-component of
-the velocity and pressure. The red line is the analytical solution. For the 2D simulation we can see
+Figure \ref{fig.sod} plots the points of the simulation for density, x-component of
+the velocity and pressure; only particles with $z=0$ are plotted for the 3D run. The red line is the analytical solution. For the 2D simulation we can see
 the shock is well resolved as is the contact discontinuity. Further the Lagrangian nature of
 the code can be seen as many particles have been squeezed between the contact discontinuity and the
 shock front while particles in the rarefaction have been spread out. For the 3D, lower resolution
-run, the code catches all three waves. Although, the the contact discontinuity wave has been
+run, the code catches all three waves. Although, the contact discontinuity wave has been
 smoothed.
 
 \subsubsection{Explosion}
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/explosion_2d.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        while the red line is the exact solution.}
+        \caption{Density heatmap and radial profile of the Explosion problem. Left density
+        heatmap, the irregular cells can been seen from the random initialization. Right
+        radial density profile is an agreement with the exact solution in red.}
         \label{fig.explosion_2d}
     \end{center}
 \end{figure}
@@ -161,14 +163,13 @@ generated by the rotation. Thus producing a solution that is independent of time
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/gresho_vortex.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \caption{Heatmap and radial profile of azimuthal velocity. Top row: time evolution
+        of the cells at times $t=0.0, 0.5, 3.0$. Bottom row: radial profile of azimuthal
+        velocity. As the simulation evolves the systems remains in equilibrium.}
         \label{fig.gresho_vortex}
     \end{center}
 \end{figure}
-Figure \ref{fig.gresho_vortex} shows three snapshots at $t=0.0, 0.5, 3.0$ of the the azimuthal
+Figure \ref{fig.gresho_vortex} shows three snapshots at $t=0.0, 0.5, 3.0$ of the azimuthal
 velocity. The top row is a 2d heat map while the bottom row is a radial profile. At time $t=0$
 all the cells are rectangular. As the system evolves the cells that are rotating become irregular 
 polygons. There is a small amount of velocity smoothing at the initial largest velocities and at
@@ -207,10 +208,9 @@ Figure \ref{fig.sedov_panel}.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/sedov_panel.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \caption{Evolution of the density at several times. The initial cell with the energy
+        imparted remains stationary as the cells around it move raidally outward. The cells at
+        the shock are compressed allowing for better resolution.}
         \label{fig.sedov_panel}
     \end{center}
 \end{figure}
@@ -277,10 +277,11 @@ accurately conserved.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/two_body.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \caption{Left: Trajectories of the two body problem for ten periods. Clearly
+        both particles remain in their orbital path shown in red signfying the stability
+        of the leap frog integrator. Right: Corresponding relative total energy error.
+        The total energy remains accuratley conserved as the worst relative error is
+        $-1.1\times10^{4}$.}
         \label{fig.two_body}
     \end{center}
 \end{figure}
@@ -357,3 +358,12 @@ are initially setup. Therefore, we transform particles radially inside the spher
 \end{equation}
 Such a transformation maps a grid of equally spaced particles with uniform density to
 a set of particles spaced in such a way that the unifrom density follows a $1/r$ profile. 
+
+The radial averaged density, radial velocity and entropy are shown in Figure at time $t=0.81$
+when the shock has formed and is traveling outward. We see all profiles adquately follow the
+exact solution in red for this low resolution run. Further we see that there is significant
+error in the conservation of energy Figure. This is expected as noted by Springel. The 
+discrepency arises from the gravitational work term which ignores the motion of mass
+exchanged by adjacent cells. Springel proposed a new formulaton for then energy equation
+that results in better energy conservation. This updated method will be added in the next
+revsion of the code.
