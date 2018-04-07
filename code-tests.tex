@@ -219,6 +219,43 @@ cells around it move radially outward. The cells exterior to the shock remain
 stationary until they are swept and compressed by the shock.
 
 \subsubsection{Kelvin-Helmholtz}
+We consider a simple shear-flow, called the Kelvin Helmholtz problem, where a single
+mode is excited by a velocity perturbation. The problem consists of two layers that have
+different densities and are initially in pressure equilibrium. Each layer flows in the
+opposing direction and receives a velocity perturbation parallel to the interface and
+with opposite signs. This perturbation grows exponentially and produces structures which
+are called Kelvin Helmholtz instabilities. A difficulty of this problem is the convergence
+since numerical errors, noise, and resolution seed spurious small structure cite. However,
+we can use this problem visually verify the characteristics of the problem are maintained
+and leave a detail treatment to the next revision of the code.
+
+We follow Springel and setup a box of unit length with density
+\begin{equation}
+	\rho = \left\{
+      \begin{array}{@{}ll@{}}
+            2 & \text{for}\ y < 0.25 \\
+            1 & \text{for}\ 0.25 \leq y \leq 0.75\\
+            2 & \text{for}\ 0.75 < y,
+    	\end{array}\right.
+\end{equation}
+and the x-component of the velocity
+\begin{equation}
+	v_x = \left\{
+      \begin{array}{@{}ll@{}}
+            -0.5 & \text{for}\ y < 0.25 \\
+            0.5 & \text{for}\ 0.25 \leq y \leq 0.75\\
+            -0.5 & \text{for}\ 0.75 < y.
+    	\end{array}\right.
+\end{equation}
+The y-component of the velocity is is
+\begin{equation}
+	v_y(x, y) = w_0 \mathrm{sin}(4\pi x) \left(\exp\left(-\frac{(y-0.25)^2}{2\sigma^2}\right) +
+    	\exp\left(-\frac{(y-0.75)^2}{2\sigma^2}\right)\right)
+\end{equation}
+where $w_0=0.1$ and $\sigma=0.05/\sqrt{2}$. The pressure is set to $P=2.5$ with $\gamma=5/3$
+and the simulation is evolved until time $t=2$.
+
+Figure
 
 \subsection{Gravity Tests}
 \subsubsection{Two body}
