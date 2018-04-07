@@ -356,6 +356,16 @@ We set $\gamma=1$ and let the system evolve to $t=3.0$. Although without an impl
 of viscosity there is no one correct solution that all codes converge to. However, we can
 visually inspect if our simulation share the same characteristics of another established
 code. In Figure we that the single mode is very similar to the results from cite
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.6\textwidth]{figures/rayleigh_compare.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
+        while the red line is the exact solution.}
+        \label{fig.rayleigh}
+    \end{center}
+\end{figure}
 
 We see the mode has the characteristics of
 
@@ -392,6 +402,16 @@ are initially setup. Therefore, we transform particles radially inside the spher
 \end{equation}
 Such a transformation maps a grid of equally spaced particles with uniform density to
 a set of particles spaced in such a way that the uniform density follows a $1/r$ profile. 
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.9\textwidth]{figures/evrard.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
+        while the red line is the exact solution.}
+        \label{fig.evrard}
+    \end{center}
+\end{figure}
 
 The radial averaged density, radial velocity and entropy are shown in Figure at time $t=0.81$
 when the shock has formed and is traveling outward. We see all profiles adequately follow the
@@ -401,3 +421,13 @@ discrepancy arises from the gravitational work term which ignores the motion of 
 exchanged by adjacent cells. Springel proposed a new formulation for then energy equation
 that results in better energy conservation. This updated method will be added in the next
 revision of the code.
+\begin{figure}
+    \begin{center}
+        \includegraphics[width=0.6\textwidth]{figures/evrard_energy.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
+        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
+        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
+        while the red line is the exact solution.}
+        \label{fig.evrard_energy}
+    \end{center}
+\end{figure}
