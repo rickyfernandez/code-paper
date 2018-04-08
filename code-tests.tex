@@ -2,8 +2,16 @@
 \subsection{Unit Tests}
 
 \subsection{Hydro Tests}
+In this section we present a series of tests to help verify the integrity and stability
+of the hydrodynamic algorithms used. For each test it is assumed that linear reconstruction,
+mesh movement, motion correction, and HLLC algorithm was used unless stated otherwise. We
+have found the HLLC, in most cases, to be as accurate as the Exact solver. In doing so, we have 
+chosen the HLLC as our default solver as it is more accurate than the HLL and less computational 
+intensive then the Exact solver. All scripts to generate the simulations and plots will be found
+in the \textbf{test\_suite} directory.
+
 \subsubsection{Linear Wave}
-Sound waves provide the mechanism to transport disturbances in a fluid. An
+Sound waves provide the mechanism to transport disturbances through a fluid. An
 elementary test problem is the ability maintain wave propagation of small
 disturbances. Given a fluid in equilibrium with constant density $\rho_0$,
 pressure $P_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
@@ -15,15 +23,15 @@ pressure $P_0$ and zero velocity $\mathbf{v}=0$ with perturbations of the form
     \end{array}
 \end{equation}
 and maintaining terms to first order in the Euler equations produce the wave
-equation for each variable with a wave propagation speed equal to the fluid's sound speed 
+equation for each variable with sound speed equal to the fluid's sound speed 
 $c_s$. Thus, setting a small disturbance 
 will propagate with a finite velocity maintaining its form as along as the initial
 disturbances are relatively small.
 
 We set up a 2d box of unit length with constant $\rho_0=1.0$, $P_0=3/5$, $\mathbf{v}=0$,
-and $\gamma=5/3$ with periodic boundary conditions. A sinusoidal wave in the x direction of 
-the form $\delta\rho(x,t) = Asin(kx + wt)$ with $k=w=2\pi$ and $A=10^{-6}$ is added at time 
-$t=0$. The remaining disturbances can be specified through $\delta\rho$ by the following
+and $\gamma=5/3$ with periodic boundary conditions. A sinusoidal wave in the $x$ direction of 
+the form $\delta\rho(x,t) = A\mathrm{sin}(kx + wt)$ with $k=w=2\pi$ and $A=10^{-6}$ is added at 
+time $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the following
 \begin{equation}
 	\begin{array}{rcl}
         \delta \mathbf{v}(x,0) & = & \left(\frac{w}{k}\right)\delta
@@ -32,7 +40,7 @@ $t=0$. The remaining disturbances can be specified through $\delta\rho$ by the f
     \end{array}
 \end{equation}
 The values chosen produce waves traveling rightward with a velocity of 1. The simulation is
-evolved for 1 time unit such that the waves return to its' initial position at time $t=0$. 
+evolved for 1 unit of time such that the waves return to its' initial position at time $t=0$. 
 Moreover, we study the convergence behavior by comparing the final state of the density to 
 the initial density by computing the $L1$ norm,
 \begin{equation}
@@ -40,15 +48,15 @@ the initial density by computing the $L1$ norm,
 \end{equation}
 where $\rho_i$ is final density at position $x_i$ and $\rho(x_i)$ is the density at t=0
 at position $x_i$ and $N$ is the number of cells per dimension. Five simulations where evolved
-with varying resolution $N=10, 20, 40, 80, 160$. The initial particles where laid out in a
-Cartesian grid and the mesh was allowed to move with the fluid velocity. All simulations
-where performed with linear reconstruction and the HLLC solver.
+with varying resolution $N=10, 20, 40, 80, 160$ with the initial particles laid out in a
+Cartesian grid.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.5\textwidth]{figures/linear-wave-l1.eps}
+        \includegraphics[width=0.4\textwidth]{figures/linear-wave-l1.eps}
         \caption{L1 norm of linear wave problem in 2d. Blue points are results
         of simulation from different resolutions overlaid by a linear fit showing
-        the convergence is approximately second order.}
+        the convergence is approximately second order. This example was produced by
+        \textbf{linear\_wave\_2d.py} and \textbf{l1\_norm.py} scripts.}
         \label{fig.linear-wave}
     \end{center}
 \end{figure}
@@ -57,17 +65,15 @@ As expected, the convergence rate is approximately second order in time and spac
 this smooth problem. In the presence of shocks or other discontinuities it is not expected
 to have such convergence.
 
-\subsubsection{Sod shock tube}
-To examine the ability of the code to handle shock propagation we perform the Sod shock tube problem. The problem
-consists of two different constant states at rest separated at the midpoint of the x axis. A discontinuity
-exist in the density and pressure at the midpoint. At $t=0$ the high density region flows into the
-lower density region. The flow produces a rarefaction, contact discontinuity, and a shock wave emanating
-from the density discontinuity. Thus, this problem creates a great test for the codes ability to capture the
-three wave types.
+\subsubsection{Sod shock-tube}
+To examine the ability of the code to handle shock propagation we perform the Sod shock-tube 
+problem \citep{toro-1997}. The problem consists of two different constant states at rest separated 
+at the midpoint of the $x$ axis. A discontinuity exist in the density and pressure at that point. 
+After $t=0$ the high density region flows into the lower density region. The flow produces a 
+rarefaction, contact discontinuity, and a shock wave emanating from the density discontinuity. Thus, 
+this problem creates a great test for the codes ability to capture the three wave types.
 
-For our initial setup we use a unit box with reflective boundary conditions, linear
-reconstruction and the HLLC solver. The discontinuity lies along the x axis at 0.5.
-The density and pressure are defined as follows
+For our initial setup we use a unit box with reflective boundary conditions with density and pressure defined as
 \begin{equation}
 	\rho = \left\{
       \begin{array}{@{}ll@{}}
@@ -90,36 +96,42 @@ and 3D respectively. This allows a comparison of a high and low resolution run.
     \begin{center}
         \includegraphics[width=0.4\textwidth]{figures/sod_2d.eps}
         \includegraphics[width=0.4\textwidth]{figures/sod_3d.eps}
-        \caption{Profiles of density, x-component of the velocity and pressure of the Sod simulation. Left 2D run using 
-        a total of $100\times100$ particles. Right 3D run using a total of $45\times45\times45$,
-        we only plot a slice of particles defined by $z=0$.
-        Light blue points are the simulation while the red line is the exact solution.}
+        \caption{Profiles of density, $x$-component of velocity and pressure of the Sod 
+        shock-tube simulation. Left: 2D run using a total of $100\times100$ particles. Right: 3D run 
+        using a total of $45\times45\times45$, we only plot a slice of particles defined by $z=0$.
+        Light blue points are the simulation while the red line is the exact solution.
+        This example was produced by \textbf{sod\_2d\_cartesian.py},
+        \textbf{sod\_3d\_cartesian.py}, \textbf{sod\_2d\_profiles.py}, and 
+        \textbf{sod\_3d\_profiles.py} scripts.}
         \label{fig.sod}
     \end{center}
 \end{figure}
-Figure \ref{fig.sod} plots the points of the simulation for density, x-component of
-the velocity and pressure; only particles with $z=0$ are plotted for the 3D run. The red line is the analytical solution. For the 2D simulation we can see
-the shock is well resolved as is the contact discontinuity. Further the Lagrangian nature of
-the code can be seen as many particles have been squeezed between the contact discontinuity and the
-shock front while particles in the rarefaction have been spread out. For the 3D, lower resolution
-run, the code catches all three waves. Although, the contact discontinuity wave has been
-smoothed.
+
+Figure \ref{fig.sod} plots the particles density, $x$-component of velocity and pressure; only 
+particles with $z=0$ are plotted in the 3D run for simplicity. The red line is the analytical 
+solution. For the 2D simulation we can see the shock is well resolved as is the contact 
+discontinuity. Further, the Lagrangian nature of the code can be seen as many particles have been 
+squeezed between the contact discontinuity and the shock front while particles in the rarefaction 
+have been spread out. For the 3D, lower resolution run, the code catches all three waves. Although, 
+the contact discontinuity wave has been smoothed due to the lower number of particles.
 
 \subsubsection{Explosion}
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/explosion_2d.eps}
+        \includegraphics[width=0.8\textwidth]{figures/explosion_2d.eps}
         \caption{Density heatmap and radial profile of the Explosion problem. Left density
         heatmap, the irregular cells can been seen from the random initialization. Right
-        radial density profile is an agreement with the exact solution in red.}
+        radial density profile is an agreement with the exact solution in red.
+        This example was produced by \textbf{explosion\_2d\_random.py} and 
+        \textbf{explosion\_density\_panel.py} scripts.}
         \label{fig.explosion_2d}
     \end{center}
 \end{figure}
-An analog to the Sod problem is the 2D explosion problem. Like the Sod problem, the domain
-is partition into two constant regions. However, the higher density region is now a circular
-region of radius $r$ centered in a unit box. Similar to the Sod problem, the initial 
+An analog to the Sod problem is the 2D explosion problem \citep{toro-1997}. Like the Sod problem, 
+the domain is partitioned into two constant states. However, the higher density region is now a 
+circular region of radius $r$ centered in a unit box. Similar to the Sod problem, the initial 
 conditions generate a shock, contact discontinuity and rarefaction wave. However, in this case
-the waves are now a circular shock wave traveling radially outward, a circular contact
+the waves are now a circular shock traveling radially outward, a circular contact
 discontinuity traveling in the same direction, and a rarefaction wave traveling towards the
 center.
 
@@ -127,17 +139,17 @@ We use the same values as the Sod problem except we restrict the higher density 
 the center of domain with radius $r=0.25$. Further, instead of using a Cartesian grid we sample
 particles uniformly for a unit square and perform 10 iterations of Lloyds algorithm. 
 
-Figure \ref{fig.explosion_2d} shows the density map and density profile. Clearly the cells
+Figure \ref{fig.explosion_2d} shows the density map and density profile. Clearly, the cells
 density matches the analytical solution in red. Further, the solution captures all three waves
 even though the mesh was built in a random fashion. This an important difference over Eulerian
 codes, since Lagrangian codes are not constrained to any initial particle placement. Therefore
 one can reach better accuracy by placing the particles in way that exploits the problem. We will
-see a later example of this in the Evrards problem.
+see a later example of this in the Evrards problem, see Section \ref{sec.evrards}.
 
 \subsubsection{Gresho vortex}
-Our next problem will test stability of the code. Gresho and Chan cite, introduced an interesting
-problem to test for conservation of angular momentum. A vortex in a unit 2D box with constant 
-density $\rho=1$ is setup with the following angular velocity
+Our next problem will test stability of the code in maintaining equilibrium. \citep{Gresho90}, 
+introduced an interesting problem to test for conservation of angular momentum. A vortex in a unit 
+2D box with constant density $\rho=1$ is setup with the following angular velocity
 \begin{equation}
 	v_\phi (r) = \left\{
       \begin{array}{@{}ll@{}}
@@ -162,10 +174,12 @@ The pressure is chosen such that the pressure gradients balance the centrifugal 
 generated by the rotation. Thus producing a solution that is independent of time.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/gresho_vortex.eps}
+        \includegraphics[width=0.8\textwidth]{figures/gresho_vortex.eps}
         \caption{Heatmap and radial profile of azimuthal velocity. Top row: time evolution
-        of the cells at times $t=0.0, 0.5, 3.0$. Bottom row: radial profile of azimuthal
-        velocity. As the simulation evolves the systems remains in equilibrium.}
+        of the cells at times $t=0.0, 0.5, 3.0$. Bottom row: corresponding radial profile of 	
+        azimuthal velocity. As the simulation evolves the systems remains in equilibrium.
+        This example was produced by \textbf{gresho\_2d\_cartesian.py} and 
+        \textbf{gresho\_density\_panel.py} scripts.}
         \label{fig.gresho_vortex}
     \end{center}
 \end{figure}
@@ -173,15 +187,15 @@ Figure \ref{fig.gresho_vortex} shows three snapshots at $t=0.0, 0.5, 3.0$ of the
 velocity. The top row is a 2d heat map while the bottom row is a radial profile. At time $t=0$
 all the cells are rectangular. As the system evolves the cells that are rotating become irregular 
 polygons. There is a small amount of velocity smoothing at the initial largest velocities and at
-the rim of the vortex. However it is evident that the system stays in equilibrium.
+the rim of the vortex. However, it is evident that the system stays in equilibrium.
 
 \subsubsection{Sedov-Taylor}
-Another test generates a shock is the Sedov-Taylor blast wave problem. In this problem a homogeneous
-gas is injected with a large amount of energy in a point-like region at the center of the domain.
-A spherical shock is created emanating from the center. The shock propagates radially outward
-sweeping mass into a thin shell and creating a cavity behind the shock. The problem has a well known
-analytical self-similar solution cite. Applying the Rankine–Hugoniot at the shock front the density
-jumps to a maximum compression of
+Another test that generates a shock is the Sedov-Taylor blast wave problem \citep{Sedov1959}. In 
+this problem a homogeneous gas is injected with a large amount of energy in a point-like region at 
+the center of the domain. A spherical shock is created emanating from the center. The shock 
+propagates radially outward sweeping mass into a thin shell and creating a cavity behind the shock. 
+The problem has a well known analytical self-similar solution; see \citep{Sedov1959} for details. 
+Applying the Rankine–Hugoniot at the shock front the density jumps to a maximum compression of
 \begin{equation}
 	\rho_{\mathrm{max}}/\rho = (\gamma + 1)/(\gamma - 1),
 \end{equation}
@@ -190,27 +204,31 @@ for $\gamma = 5/3$ this amounts to a max value of 4.
 We consider the 2D and 3D case. A unit box is setup with particles in a Cartesian grid of size
 $45\times 45$ and $45 \times 45 \times 45$ for 2D and 3D respectively. The stationary gas has
 a constant density of $\rho = 1.0$ and pressure $P = 10^{-6}$ with $\gamma=5/3$. The simulation is
-allowed to run to time $t=0.06$ using linear reconstruction and the HLLC solver.
+allowed to evolve to time $t=0.06$.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/sedov_compare.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \includegraphics[width=0.8\textwidth]{figures/sedov_compare.eps}
+        \caption{Density profile of Sedov-Taylor blast wave problem. Left: 2D version with an 
+        initially Cartesian mesh of $45 \times 45$. Right: 3D version with an initially 
+        Cartesian mesh of $45 \times 45 \times 45$; only a random sample of $45\times45$ is
+        plotted for simplicity. Light blue points are the density at radius $r$ 
+        from the center of the explosion while the red line is the exact solution.
+        This example was produced by \textbf{sedov\_2d\_cartesian.py},
+        \textbf{sedov\_3d\_cartesian.py}, and \textbf{sedov\_density\_compare.py} scripts.}
         \label{fig.sedov}
     \end{center}
 \end{figure}
-Figure \ref{fig.sedov} shows the cell density as a function of radial distance from the center of the
-explosion. It is noted that shock is well resolved by the cells as the mesh has deformed in such a way
-that the shock front contains a large amount of cells which is evident in
+Figure \ref{fig.sedov} shows the cell density as a function of radial distance from the center of 
+the explosion. It is noted that shock is well resolved by the cells as the mesh has deformed in such 
+a way that the shock front contains a large amount of cells which is evident in
 Figure \ref{fig.sedov_panel}.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/sedov_panel.eps}
+        \includegraphics[width=0.8\textwidth]{figures/sedov_panel.eps}
         \caption{Evolution of the density at several times. The initial cell with the energy
         imparted remains stationary as the cells around it move radially outward. The cells at
-        the shock are compressed allowing for better resolution.}
+        the shock are compressed allowing for better resolution. This example was produced by 
+        \textbf{sedov\_2d\_cartesian.py} and \textbf{sedov\_density\_panel.py} scripts.}
         \label{fig.sedov_panel}
     \end{center}
 \end{figure}
@@ -218,18 +236,18 @@ The center cell, where the energy is deposited, remains stationary while the
 cells around it move radially outward. The cells exterior to the shock remain
 stationary until they are swept and compressed by the shock.
 
-\subsubsection{Kelvin-Helmholtz}
-We consider a simple shear-flow, called the Kelvin Helmholtz problem, where a single
-mode is excited by a velocity perturbation. The problem consists of two layers that have
-different densities and are initially in pressure equilibrium. Each layer flows in the
-opposing direction and receives a velocity perturbation parallel to the interface and
-with opposite signs. This perturbation grows exponentially and produces structures which
-are called Kelvin Helmholtz instabilities. A difficulty of this problem is the convergence
+\subsubsection{Kelvin-Helmholtz instability}
+For our last hydrodynamic test we consider the Kelvin-Helmholtz (KH) instability problem. This
+problem consist of a shear-flow where a single mode is excited by a velocity perturbation.
+Specifically, two layers with different densities and are initially in pressure equilibrium. 
+Each layer flows in the opposing direction and receives a velocity perturbation perpendicular to the 
+interface. This perturbation grows exponentially and produces structures which
+are called K instabilities. A difficulty of this problem is the convergence
 since numerical errors, noise, and resolution seed spurious small structure cite. However,
 we can use this problem visually verify the characteristics of the problem are maintained
 and leave a detail treatment to the next revision of the code.
 
-We follow Springel and setup a box of unit length with density
+We follow \citep{Springel2010} and setup a box of unit length with density
 \begin{equation}
 	\rho = \left\{
       \begin{array}{@{}ll@{}}
@@ -418,6 +436,7 @@ code. In Figure we that the single mode is very similar to the results from cite
 We see the mode has the characteristics of
 
 \subsubsection{Evrard Collapse}
+\label{sec.evrards}
 The final test is the Evrards collapse problem which tests the coupling of self-gravity and hydrodynamics.
 The problem consists of an initially non-rotating isothermal gas sphere with mass $M=1$ and radius $R=1$
 with a density 
