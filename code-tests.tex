@@ -147,7 +147,7 @@ one can reach better accuracy by placing the particles in way that exploits the 
 see a later example of this in the Evrards problem, see Section \ref{sec.evrards}.
 
 \subsubsection{Gresho vortex}
-Our next problem will test stability of the code in maintaining equilibrium. \citep{Gresho90}, 
+Our next problem will test stability of the code in maintaining equilibrium. \cite{Gresho90}, 
 introduced an interesting problem to test for conservation of angular momentum. A vortex in a unit 
 2D box with constant density $\rho=1$ is setup with the following angular velocity
 \begin{equation}
@@ -194,7 +194,7 @@ Another test that generates a shock is the Sedov-Taylor blast wave problem \cite
 this problem a homogeneous gas is injected with a large amount of energy in a point-like region at 
 the center of the domain. A spherical shock is created emanating from the center. The shock 
 propagates radially outward sweeping mass into a thin shell and creating a cavity behind the shock. 
-The problem has a well known analytical self-similar solution; see \citep{Sedov1959} for details. 
+The problem has a well known analytical self-similar solution; see \cite{Sedov1959} for details. 
 Applying the Rankine–Hugoniot at the shock front the density jumps to a maximum compression of
 \begin{equation}
 	\rho_{\mathrm{max}}/\rho = (\gamma + 1)/(\gamma - 1),
@@ -237,17 +237,18 @@ cells around it move radially outward. The cells exterior to the shock remain
 stationary until they are swept and compressed by the shock.
 
 \subsubsection{Kelvin-Helmholtz instability}
-For our last hydrodynamic test we consider the Kelvin-Helmholtz (KH) instability problem. This
+For our last hydrodynamic test we consider the Kelvin-Helmholtz (KH) instability. This
 problem consist of a shear-flow where a single mode is excited by a velocity perturbation.
-Specifically, two layers with different densities and are initially in pressure equilibrium. 
-Each layer flows in the opposing direction and receives a velocity perturbation perpendicular to the 
-interface. This perturbation grows exponentially and produces structures which
-are called K instabilities. A difficulty of this problem is the convergence
-since numerical errors, noise, and resolution seed spurious small structure cite. However,
-we can use this problem visually verify the characteristics of the problem are maintained
-and leave a detail treatment to the next revision of the code.
+Specifically, two layers with different densities are initially in pressure equilibrium. 
+Each layer flows in the opposing direction and receives a velocity perturbation perpendicular
+to the interface. The perturbation grows exponentially and produces structures which
+are called KH instabilities. A difficulty of this problem is that
+numerical errors, noise, and resolution seed spurious small structure \citep{Lecoanet2016}
+making direct comparisons a difficult endeavor. However, we can use this problem to
+visually verify the characteristics of the problem are maintained
+and leave the exact detail treatment to the next revision of the code.
 
-We follow \citep{Springel2010} and setup a box of unit length with density
+We follow \cite{Springel2010} and setup a unit periodic box with density
 \begin{equation}
 	\rho = \left\{
       \begin{array}{@{}ll@{}}
@@ -256,35 +257,37 @@ We follow \citep{Springel2010} and setup a box of unit length with density
             2 & \text{for}\ 0.75 < y,
     	\end{array}\right.
 \end{equation}
-and the x-component of the velocity
+$x$-component of velocity
 \begin{equation}
 	v_x = \left\{
       \begin{array}{@{}ll@{}}
             -0.5 & \text{for}\ y < 0.25 \\
             0.5 & \text{for}\ 0.25 \leq y \leq 0.75\\
-            -0.5 & \text{for}\ 0.75 < y.
+            -0.5 & \text{for}\ 0.75 < y,
     	\end{array}\right.
 \end{equation}
-The y-component of the velocity is is
+and $y$-component of velocity
 \begin{equation}
 	v_y(x, y) = w_0 \mathrm{sin}(4\pi x) \left(\exp\left(-\frac{(y-0.25)^2}{2\sigma^2}\right) +
     	\exp\left(-\frac{(y-0.75)^2}{2\sigma^2}\right)\right)
 \end{equation}
-where $w_0=0.1$ and $\sigma=0.05/\sqrt{2}$. The pressure is set to $P=2.5$ with $\gamma=5/3$
+where $w_0=0.1$ and $\sigma=0.05/\sqrt{2}$. The pressure is set to $P=2.5$, $\gamma=5/3$
 and the simulation is evolved until time $t=2$.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/kelvin.eps}
-        \caption{Evolution of the density at several times. The initial cell with the energy
-        imparted remains stationary as the cells around it move radially outward. The cells at
-        the shock are compressed allowing for better resolution.}
+        \caption{Evolution of the density at several times in the KH problem. We see the common
+        traits of KH evolution, KH billows and mixing. This example was produced by 
+        \textbf{kelvin\_helmholtz\_2d\_cartesian.py} and 
+        \textbf{kelvin\_helmholtz\_density\_panel.py} 
+        scripts.}
         \label{fig.kelvin}
     \end{center}
 \end{figure}
 
 Figure \ref{fig.kelvin} shows the density field for several selected times. Comparing with
 Springel, visually we conclude that the results are in close agreement. The formation of the
-Kevlin Helmholtz billows and mixing of both fluids are at each time are similar.
+Kevlin Helmholtz billows and mixing of both fluids at each time are similar.
 
 \subsection{Gravity Tests}
 \subsubsection{Two body}
