@@ -290,16 +290,23 @@ Springel, visually we conclude that the results are in close agreement. The form
 Kevlin Helmholtz billows and mixing of both fluids at each time are similar.
 
 \subsection{Gravity Tests}
+In this section we continue the testing procedure by including tests of gravity. As in this
+previous section, tests that include hydrodynamics will incorporate linear reconstruction,
+mesh movement, motion correction, and HLLC algorithm unless stated otherwise. Moreover, for
+tests that only include gravity the leap frog integrator will be used.
+All scripts to generate the simulations and plots will be found in the \textbf{test\_suite} 
+directory.
+
 \subsubsection{Two body}
 Our first problem, in testing our gravity solver, is a simple two body problem where two particles
-interact with each other through their gravitational force. Although, this problem does not really test the 
-implementation of the gravity tree, since only two leaves will be constructed
-in the tree and it is most likely that the leaves will interact with each other bypassing the node 
+interact with each other through their gravitational force. Although, this problem does not really 
+test the implementation of the gravity tree, since only two leaves will be constructed and it is 
+more likely that the leaves will interact with each other bypassing node 
 moments, it does test the gravity kernel and stability of the leap frog integrator.
 
-For this problem an exact solution exists by reducing it to a single body. Given
-two particles with masses $m_1$ and $m_2$ with positions $\vec{r}_1$ and $\vec{r}_2$ the equation of motion for
-the reduced mass
+For this problem an exact solution exists by reducing to a single body \citep{Landau1969}.
+Given two particles with masses $m_1$ and $m_2$ with positions $\vec{r}_1$ and $\vec{r}_2$ the 
+equation of motion for the reduced mass
 \begin{equation}
 	\frac{1}{\mu} = \frac{1}{m_1} + \frac{1}{m_2}
 \end{equation}
@@ -308,10 +315,10 @@ is
 	\mu\frac{d^2 \vec{r}}{dt^2} = -\frac{G m_1 m_2}{r^2}\hat{r},
     \label{eq.reduced-force}
 \end{equation}
-where $\vec{r}$ is the separation vector $\vec{r}_1 - \vec{r}_2$. Equation \ref{eq.reduced-force} can be
-transformed to polar coordinates giving the solution
+where $\vec{r}$ is the separation vector $\vec{r}_1 - \vec{r}_2$. Equation \ref{eq.reduced-force} 
+can be transformed to polar coordinates giving the solution
 \begin{equation}
-	r = \frac{a(1-\epsilon^2)}{1-\epsilon cos(\theta)}
+	r = \frac{a(1-\epsilon^2)}{1-\epsilon \mathrm{cos}(\theta)}
 \end{equation}
 for initial conditions $a$ and $\epsilon$. The overall system evolves with a period of
 \begin{equation}
@@ -336,76 +343,84 @@ $\epsilon$ and $q=m_1/m_2$
     \end{array}
 \end{equation}
 
-We setup the particles with parameter values $a=0.5$ and $\epsilon=0.25/0.75$ with $G=1$ and allow
+We setup the particles with parameter values $a=0.5$, $\epsilon=0.25/0.75$ and $G=1$ and allow
 the simulation to evolve for 10 periods. The time step is held fixed with a value of $dt=T/1000$.
 In Figure \ref{fig.two_body} we show the trajectory for both particles as well as the evolution of
-the relative total energy error. We clearly see that both trajectories remain along the exact solution
-signifying the stability of the leap frog integrator. Further we see that the relative total energy
-error remains bounded by zero and $-1.1\times10^{-4}$ indicating that the total energy remains
-accurately conserved.
+the relative total energy error. We clearly see that both trajectories remain along the exact 
+solution, in red, signifying the stability of the leap frog integrator. Further we see that the 
+relative total energy error remains bounded by zero and $-1.1\times10^{-4}$ indicating that the 
+total energy remains accurately conserved.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/two_body.eps}
-        \caption{Left: Trajectories of the two body problem for ten periods. Clearly
+        \includegraphics[width=0.8\textwidth]{figures/two_body.eps}
+        \caption{Left: trajectories of the two body problem for ten periods. Clearly
         both particles remain in their orbital path shown in red signifying the stability
-        of the leap frog integrator. Right: Corresponding relative total energy error.
+        of the leap frog integrator. Right: corresponding relative total energy error.
         The total energy remains accurately conserved as the worst relative error is
-        $-1.1\times10^{4}$.}
+        $-1.1\times10^{4}$. This example was produced by 
+        \textbf{two\_body.py} and \textbf{two\_body\_panel.py}}
         \label{fig.two_body}
     \end{center}
 \end{figure}
 
 \subsubsection{Plummer sphere}
-The Plummer sphere cite is a model that can be used to describe the distribution of stars and in a cluster
-and is commonly used to test gravity solvers. The Plummer sphere, i.e. a polytrope of index 5,
-has a density profile of the from
+The Plummer sphere \citep{Plummer1911} is a model that can be used to describe the distribution of 
+stars and in a cluster and is commonly used to test gravity solvers. The Plummer sphere, i.e. a 
+polytrope of index 5, has a density profile of the from
 \begin{equation}
 	\rho (r) = \frac{3 M}{4\pi R^3} \left(1 + (r/R)^2\right)^{-5/2},
     \label{eq.plummer}
 \end{equation}
-where $M$ is the total mass of the cluster and $R$ is a scale parameter which sets the
+where $M$ is the total mass and $R$ is a scale parameter which sets the
 size of the cluster. The system is in steady state with an isotropic velocity distribution.
 To test our gravity solver, we initialize our particles with the given distributions and
 advance the system in time. We expect the system to stay in steady state therefore we compare
-the initial density distribution with the final state of the system.
+the initial density distribution with the final state.
 
 For our test we chose the parameters of the Plummer sphere to be $M=1,000$ and $R=1$ with
 $G=1$. We then sampled 10,000 particles using the the rejection technique outlined in
-cite to set the position and velocities. The system is allowed to evolve to time $t=1$
-which is roughly ten dynamical times. The gravitational tree used an opening angle 0.4
-and smoothing parameter of 0.03.
+\cite{Aarseth1974} to set the position and velocities. The system is allowed to evolve to time 
+$t=1$, which is roughly ten dynamical times, and a fixed time step of $dt=0.001$. The
+gravitational tree parameters used was an opening angle 0.4 and smoothing parameter of 0.03.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/plummer.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \includegraphics[width=0.8\textwidth]{figures/plummer.eps}
+        \caption{Density profile and relative total energy error evolution. Left: the initial and 
+        final density distribution overlaid by the Plummer density profile. The markers are shell
+        density averages divided by the shell density. At the the end of the evolution the 
+        particles remain in a Plummer distribution. Right: evolution of the  relative total energy 
+        error. The error remains relatively small indicating the total energy remains accurately
+        conserved. This example was produced by \textbf{plummer.py} and 
+        \textbf{plummer\_panel.py}.}
         \label{fig.plummer}
     \end{center}
 \end{figure}
 The left panel of Figure \ref{fig.plummer} shows the density profile at the initial and final 
-time of the simulation with equation \ref{eq.plummer} overlaid as a reference. The density is calculated
-by dividing the space by spherical shells, binning and dividing by the volume. It is clearly shown that
-at the final time the particles remain in steady state with their positions matching the initial
-distribution. The right panel of \ref{fig.plummer} shows the evolution of the relative error of the
-total energy of the system. The error stays well below $5\times 10^{-4}$ with a final error of
-$2\times 10^{-4}$, entailing the solver has accurately maintained the total energy.
+time of the simulation with equation \ref{eq.plummer} overlaid as a reference. The density is 
+calculated by dividing the space by spherical shells, binning and dividing by the volume. It is 
+clearly shown at the final time that the particles remain in steady state with their positions 
+matching the initial distribution. The right panel of \ref{fig.plummer} shows the evolution of the 
+relative error of the total energy of the system. The error stays well below $5\times 10^{-4}$ with 
+a final error of $2\times 10^{-4}$, entailing the solver has accurately maintained conservation
+of total energy.
 
-\subsubsection{Rayleigh Taylor}
-Our first hydrodynamic problem to include gravity is the Rayleigh Taylor instability problem.
-The problem consists of dense fluid over a lighter fluid in the presence of a uniform 
-vertical gravitational field. A perturbation is placed in the vertical direction causing the
-dense field to sink while the lighter rises through buoyancy.
+\subsubsection{Rayleigh-Taylor instability}
+Our first hydrodynamic problem which includes gravity is the Rayleigh-Taylor instability problem.
+The problem consists of a dense fluid resting over a lighter fluid in the presence of an uniform 
+vertical gravitational field. A velocity perturbation is placed in the vertical direction causing 
+the dense field to sink while the lighter rises through buoyancy.
 
-A rectangular domain of the size $[1\times3]$ is chosen with the gravitational force in the
-$y$-direction with strength of $g=1$. The initial setup of the density
-is
+A rectangular Cartesian domain is chosen as $x \in [0, 1]$ and $y \in [0,3]$ of size $50\times150$ 
+with reflective boundary conditions. Typically this problem is performed with periodic in the 
+$x$-direction with reflective in the $y$-direction. However, we currently don't have an 
+implementation of mixed boundary conditions. Nonetheless, the reflective boundary in the 
+$x$-direction will not affect our single mode until later times of our analysis. The gravitational 
+force is placed in the $y$-direction and has strength of $g=1$. The initial density is
 \begin{equation}
 	\rho = \left\{
       \begin{array}{@{}ll@{}}
             1 & \text{for}\ y \leq 1.5 \\
-            2 & \text{for}\ 5 > 1.5,
+            2 & \text{for}\ y > 1.5,
     	\end{array}\right.
 \end{equation}
 while the pressure is
@@ -413,30 +428,36 @@ while the pressure is
 	P = \left\{
       \begin{array}{@{}ll@{}}
             10 - y & \text{for}\ y \leq 1.5 \\
-            11.5 + 2(y-1.5) & \text{for}\ 5 > 1.5,
+            11.5 + 2(y-1.5) & \text{for}\ y > 1.5.
     	\end{array}\right.
 \end{equation}
-such that the system is initially in hydrostatic equilibrium. A perturbation is applied
-to the $y$-velocity
+The system, initially in hydrostatic equilibrium, is given a velocity perturbation
+in the $y$-direction
 \begin{equation}
-	v_y = \mathrm{cos}\left(2\pi x\right)\exp{-(y-1.5)^2/0.1}
+	v_y = \mathrm{cos}\left(2\pi x\right)\exp\left(-(y-1.5)^2/0.1^2\right).
 \end{equation}
-We set $\gamma=1$ and let the system evolve to $t=3.0$. Although without an implementation
-of viscosity there is no one correct solution that all codes converge to. However, we can
-visually inspect if our simulation share the same characteristics of another established
-code. In Figure we that the single mode is very similar to the results from cite
+We set $\gamma=1$ and let the system evolve to a time $t=3.0$. Although without an implementation
+of viscosity there is no one correct solution that all codes converge to \citep{Stone2008}.
+However, we can visually inspect our solution for common traits of this problem. Two simulations
+where performed, first constraining the mesh to be stationary and second allowing the mesh to move.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.6\textwidth]{figures/rayleigh_compare.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \includegraphics[width=0.5\textwidth]{figures/rayleigh_compare.eps}
+        \caption{The evolution of the Rayleigh-Taylor instability problem with stationary mesh
+        (top) and moving mesh (bottom). The initial mesh is a Cartesian of size $50\times150$.
+         This example was produced by \textbf{rayleigh\_2d\_cartesian.py} and 
+        \textbf{rayleigh\_density\_panel.py}.}
         \label{fig.rayleigh}
     \end{center}
 \end{figure}
 
-We see the mode has the characteristics of
+In Figure \ref{fig.rayleigh} we see both simulations have the expected results, the lighter fluid
+rising around the denser fluid that sinks and both developing billows. For the stationary case,
+the simulation maintains vertical symmetry. Unlike the moving mesh counterpart that loses
+symmetry at the final output time. This is expected, as pointed out by \cite{Springel2010} since the 
+mesh correction motion (steer the cells to become rounder) can trigger perturbations of their own.
+The symmetry can be maintained for longer times by increasing the resolution but ultimately 
+both simulation lose their symmetry by round off noise since the system is chaotic.
 
 \subsubsection{Evrard Collapse}
 \label{sec.evrards}
@@ -474,7 +495,7 @@ Such a transformation maps a grid of equally spaced particles with uniform densi
 a set of particles spaced in such a way that the uniform density follows a $1/r$ profile. 
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.9\textwidth]{figures/evrard.eps}
+        \includegraphics[width=0.8\textwidth]{figures/evrard.eps}
         \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
         Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
         $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
@@ -493,7 +514,7 @@ that results in better energy conservation. This updated method will be added in
 revision of the code.
 \begin{figure}
     \begin{center}
-        \includegraphics[width=0.6\textwidth]{figures/evrard_energy.eps}
+        \includegraphics[width=0.5\textwidth]{figures/evrard_energy.eps}
         \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
         Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
         $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
