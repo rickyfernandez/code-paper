@@ -461,9 +461,9 @@ both simulation lose their symmetry by round off noise since the system is chaot
 
 \subsubsection{Evrard Collapse}
 \label{sec.evrards}
-The final test is the Evrards collapse problem which tests the coupling of self-gravity and hydrodynamics.
-The problem consists of an initially non-rotating isothermal gas sphere with mass $M=1$ and radius $R=1$
-with a density 
+The final test is the Evrards collapse problem which tests the coupling of self-gravity and 
+hydrodynamics. The problem consists of an initially non-rotating isothermal gas sphere with mass 
+$M=1$ and radius $R=1$ with density 
 \begin{equation}
 	\rho(r) = \left\{
       \begin{array}{@{}ll@{}}
@@ -479,46 +479,49 @@ and pressure
             0 & \text{for}\ r > 1.
     	\end{array}\right.
 \end{equation}
-The gravitational constant is set to $G=1$ and $\gamma=5/3$. The evolution of the sphere begins
-with mass falling towards the center due to self-gravity. The pressure at the center rises and
-produces a shock traveling outward through the in-falling gas. The final state of the gas is a
-spherical distribution in hydrostatic virial equilibrium.
+The evolution of the sphere begins with mass falling towards the center due to self-gravity. The 
+pressure at the center rises and produces a shock traveling outward through the in-falling gas. The 
+final state of the gas is a spherical distribution in hydrostatic virial equilibrium.
 
-We setup an initial Cartesian grid of size $33\times 33\times 33$ particles. Due to the nature
-of the $1/r$ density profile, a Cartesian mesh will not resolve the high density values unless
-the resolution is sufficiently increased. However we have complete freedom on how to the particles
-are initially setup. Therefore, we transform particles radially inside the sphere by the following
+We setup an initial Cartesian grid of range $[0,2.5]^3$ with $33\times 33\times 33$ particles.
+The gas sphere is centered at $(1.25, 1.25, 1.25)$. Due 
+to the nature of the $1/r$ density profile, a Cartesian mesh will not resolve the high density 
+values unless the resolution is sufficiently increased. However we have complete freedom on how
+to place the initial particles. Therefore, we transform particles radially inside the sphere by 
+the following
 \begin{equation}
     r_{\mathrm{new}} = r_{\mathrm{old}}^{3/2}.
 \end{equation}
 Such a transformation maps a grid of equally spaced particles with uniform density to
-a set of particles spaced in such a way that the uniform density follows a $1/r$ profile. 
+a set of particles spaced in a way that the uniform density follows a $1/r$ profile.
+Performing this transformation produces particles with equal mass and $1/r$ density profile.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/evrard.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \caption{Profiles of the density, radial velocity and entropy at $t=0.81$ overlaid
+        with a high resolution 1D PPM solution. The profiles are shell averages divided by 		
+        shell density. This example was produced by \textbf{evrard.py} and 
+        \textbf{evrard\_profiles.py}.}
         \label{fig.evrard}
     \end{center}
 \end{figure}
 
-The radial averaged density, radial velocity and entropy are shown in Figure at time $t=0.81$
-when the shock has formed and is traveling outward. We see all profiles adequately follow the
-exact solution in red for this low resolution run. Further we see that there is significant
-error in the conservation of energy Figure. This is expected as noted by Springel. The 
-discrepancy arises from the gravitational work term which ignores the motion of mass
-exchanged by adjacent cells. Springel proposed a new formulation for then energy equation
-that results in better energy conservation. This updated method will be added in the next
-revision of the code.
+The radial averaged density, velocity and entropy are shown in Figure \ref{fig.evrard} at time 
+$t=0.81$ with a high resolution 1D solution for reference. At this time the shock is fully formed 
+and is traveling outward. We see that each profile adequately follows the exact solution in red for 
+this low resolution run. Further we see significant error in the conservation of total energy 
+Figure \ref{fig.evrard_energy}; a relative error of $27\%$ at the final state. This is expected as 
+it is pointed out by \cite{Springel2010}. The discrepancy arises from the gravitational work term 
+which ignores the motion of mass exchanged by adjacent cells. \cite{Springel2010} proposed a new 
+formulation for then energy equation that results in better total energy conservation. This updated 
+method will be added in the next revision of the code.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.5\textwidth]{figures/evrard_energy.eps}
-        \caption{Density profile of Sedov-Taylor blast wave problem. Left is the 2D version with an initially
-        Cartesian mesh of $45 \times 45$. Right is the 3D version with an initially Cartesian mesh of 
-        $45 \times 45 \times 45$. Light blue points are the density a radius $r$ from the center of the explosion
-        while the red line is the exact solution.}
+        \caption{Evolution of total energy and each of its' component (top) and relative
+        total energy error (bottom). Our current implementation of gravity generates 
+        considerable error in the total energy. This example was produced by 
+        \textbf{evrard.py} and \textbf{evrard\_energy.py}.}
         \label{fig.evrard_energy}
     \end{center}
 \end{figure}
