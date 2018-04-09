@@ -461,9 +461,9 @@ both simulation lose their symmetry by round off noise since the system is chaot
 
 \subsubsection{Evrard Collapse}
 \label{sec.evrards}
-The final test is the Evrards collapse problem which tests the coupling of self-gravity and 
-hydrodynamics. The problem consists of an initially non-rotating isothermal gas sphere with mass 
-$M=1$ and radius $R=1$ with density 
+The final test is the Evrards collapse problem \citep{Evrard1988} which tests the coupling of
+self-gravity and hydrodynamics. The problem consists of an initially non-rotating isothermal gas 
+sphere with mass $M=1$ and radius $R=1$ with density 
 \begin{equation}
 	\rho(r) = \left\{
       \begin{array}{@{}ll@{}}
@@ -483,12 +483,11 @@ The evolution of the sphere begins with mass falling towards the center due to s
 pressure at the center rises and produces a shock traveling outward through the in-falling gas. The 
 final state of the gas is a spherical distribution in hydrostatic virial equilibrium.
 
-We setup an initial Cartesian grid of range $[0,2.5]^3$ with $33\times 33\times 33$ particles.
-The gas sphere is centered at $(1.25, 1.25, 1.25)$. Due 
-to the nature of the $1/r$ density profile, a Cartesian mesh will not resolve the high density 
-values unless the resolution is sufficiently increased. However we have complete freedom on how
-to place the initial particles. Therefore, we transform particles radially inside the sphere by 
-the following
+We setup an initial Cartesian grid of range $[0,2.5]^3$ with $33\times33\times33$ particles.
+The gas sphere is centered at $(1.25, 1.25, 1.25)$. Due to the nature of the $1/r$ density profile,
+a Cartesian mesh will not resolve the high density values unless the resolution is sufficiently 
+increased. However we have complete freedom on how to place the initial particles. Therefore, we 
+transform particles radially inside the sphere by the following
 \begin{equation}
     r_{\mathrm{new}} = r_{\mathrm{old}}^{3/2}.
 \end{equation}
