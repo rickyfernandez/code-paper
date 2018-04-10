@@ -74,30 +74,30 @@ all Carrays in the Container. Further the container has routines to subset, remo
 and add values to certain elements.
 
 \subsection{Simulation Class}
-The simulation class is the main driver for advancing the solution in time
-and coordinating outputs to disk and terminal. Its two most important methods are listed
-below
+The \lstinline{Simulation} class is the main driver for advancing the solution in time
+and coordinating outputs to disk and terminal. The two most important methods of this
+class are listed below
 \begin{itemize}
-	\item \textbf{solve()}: advance the integrator to its final state while outputting all
-    necessary information. 
-    \item \textbf{compute\_time\_step()}: aggregate all time steps and enforce the smallest.
+    \item \lstinline{solve()}: advance \lstinline{IntegrateBase} to its final state while
+        outputting all necessary information. 
+    \item \lstinline{compute_time_step()}: aggregate all time steps and enforce the smallest.
 \end{itemize}
-The \textbf{solve()} method, from its inception, was designed to be 
-independent of the solvers. This was accomplished by distinguishing state computation methods and
-advancing state methods. For example, the integrator can only a perform a computation at a given
-state (see Section~\ref{sec.integrator} for details) while the simulation class can
-dictate when and the number of computations. Thus, the simulation class controls the time
-advancement independently of the equations being solved. As of writing three integrators exist,
-however, adding a new integrator is relatively straightforward.
+From its inception, the class was designed to be independent of the solvers. This was 
+accomplished by distinguishing state computation and state advancing methods. For example,
+\lstinline{IntegrateBase} can only perform a computation at a given temporal state 
+(see Section~\ref{sec.integrator} for details) while \lstinline{Simulation} can
+dictate when and the number of computations. Thus, \lstinline{Simulation} controls the
+time advancement independently of the equations being solved. As of writing three integrators
+exist, however, adding a new integrator is relatively straightforward.
 
-During the course of a simulation the simulation class calls 
-At the end of every time step the simulation class calls \textbf{compute\_time\_step()}
-For signaling to write to disk or completion of a simulation the simulation class uses 
-\textbf{outputters} and \textbf{Finishers} (see Section~\ref{sec.outputters} for details)
-respectively. Each \textbf{outputter} and \textbf{Finisher}
-is able to modify $dt$. The simulation class has the ability to cycle through all classes that
-produce or modify $dt$ and handle it accordingly. When an \textbf{outputter} hits its output
-time the simulation class allows
+During the course of a simulation the class is responsible to schedule outputs and
+determined if the simulation has completed. Simulation outputs and termination are 
+designated by the \lstinline{SimulationOutputerBase} and \lstinline{SimulationFinisherBase} 
+classes respectively (see Section~\ref{sec.outputters} for details). At the end of every time
+step the class calls \lstinline{compute_time_step()} to modify the current time step and
+output any necessary data by cycling through all outputters. Likewise, at the beginning of
+the time step the class cycles through all \lstinline{SimulationFinisherBase} classes 
+search for a termination signal.
 
 Lastly, the simulation class also controls logging information (see Section~\ref{sec.logging}
 for details). 
@@ -120,7 +120,78 @@ root processor takes responsibility for writing to the log file and displaying t
 \subsubsection{Riemann Solver}
 
 \subsection{General Source Terms}
+The inclusion of source terms has been implemented through a general source
+\lstinline{SourceTermBase} with methods listed below:
+\begin{itemize}
+    \item \lstinline{apply_primitve()}: modify primitive variables.
+    \item \lstinline{apply_conservative()}: modify consevative variables.
+    \item \lstinline{apply_flux()}: modify flux terms.
+    \item \lstinline{compute_source()}: calculate soure components.
+    \item \lstinline{compute_time_step()}: calculate time step from source term.
+\end{itemize}
+This formulation was chosen after some considerable experimentation. One of the
+earlier attempts was a registration process. In this scenario a source term
+would link any computation to class method. This information was stored
+in a dictionary inside \lstinline{Simulation} and at runtime each class method
+was over written using Pythons decorator shcheme. Although, this scheme makes
+use of more advnace programming methods we found that this implementation was
+not easy to discern. Moreover we found that this method left to much ambiguity
+to the source terms, allowing . Instead we
+found this current implementation to be more understanble and easier to
+generalize.
+
+The api listed above are the mandatory methods to be defined for any source
+term. In general, we write an interface for each given source term. In this
+way if the integrator changes only the api has to be updated leaving
+the core of the source term unaltered. This also allows to easily implement
+third party libraries as source terms, chemsitry or radiation for example.
+Once the methods have been defined the class is registered to 
+\lstinline{Simulation} class and will be invoked at the appropriate parts
+during the computation.
+
 \subsubsection{Gravity}
+For a more concrete example of how to include a source term we highlight the
+pieces used to include self gravity. Our self gravity is a tree based implemetation
+named \lstinline{GravityTree}. Its main routine is \lstinline{walk()} which is the
+calculation of gravitational accelerations from the current position of the particles.
+To include this as a source term we created a new class called \lstinline{SelfGravity}
+which inherits \lstinline{SourceTermBase}. As disscussed in section, gravity alters
+the momentum and primitive values.
+\begin{lstlisting}[caption={Self gravity implementation},label={lst:gravity}]
+...
+cdef class SelfGravity(MUSCLHancockSourceTerm):
+    ...
+    cpdef apply_primitive(self, object integrator):
+        # loop over each face in the mesh 
+        for m in range(integrator.mesh.faces.get_carray_size()):
+            ....
+            # add gravity to velocity
+            for k in range(dim):
+                vl[k][m] += 0.5*dt*a[k][i]
+                vr[k][m] += 0.5*dt*a[k][j]
+
+        # add gravity acceleration from particle
+        for i in range(integrator.particles.get_carray_size()):
+            ...
+                for k in range(dim):
+                    # update momentum
+                    e.data[i] += 0.5*dt*mv[k][i]*a[k][i]
+
+                    # update energy 
+                    mv[k][i] += 0.5*dt*mass.data[i]*a[k][i]
+
+    cpdef apply_conservative(self, object integrator):
+        ...
+        # add gravity acceleration from particle
+        for i in range(particles.get_carray_size()):
+            ...
+                for k in range(dim):
+                    # update momentum
+                    mv[k][i] += 0.5*dt*mass.data[i]*a[k][i]
+
+                    # update energy 
+                    e.data[i] += 0.5*dt*mv[k][i]*a[k][i]
+\end{lstlisting}
 
 \subsection{Readers/Writers}
 \subsubsection{HDF5}
