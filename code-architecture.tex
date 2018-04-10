@@ -1,7 +1,33 @@
 \section{Code Design}
+In the following section we go over the design and rationale of our choices
+for the development of the code.
+
 \subsection{Overall Class Design Considerations}
 \subsubsection{Field Registration}
+Form our past experience, we have found one of the challenging problems in maintaining codes
+is that of adding new fields. There are many reasons why to add new fields, for example,
+an implementation of new physics (mhd, radiation, chemistry etc.) or adding a passive scalar
+to track some portion of fluid or modification of existing algorithm that needs an auxiliary
+field that has not been stored. In any case, the addition of a new field can be challenging
+if the computation has been hard coded or the data structures, for example C structs, do not
+allow the addition of new fields. For this reason, we early on adopted a data structure
+that allows registration of fields. In this manner fields can be added at any later point.
+
+For these considerations we will see a common thread with most of our classes. Most of our
+classes will have some form of registration or addition of fields. For registration, the
+class usually inspects the particle data structure and creates the fields necessary to
+during the simulation. In the case of addition, the class will search the particles fields
+and if the fields are not present the class will add them.
+
 \subsubsection{Class Registration}
+Another source for future problems is when an algorithm depends on another. For example
+our gravity tree solver depends on our load balance implementation. If these algorithms
+where designed concurrently then though would be taken on how they should interact
+with one another. However, it is very common that new implementations are needed after 
+due to the progression of new algorithms. In these situations common options are to re-factor
+the algorithms or even rewrite the algorithm itself.
+
+In our case we decided to write our classes as stand alone computations
 
 \subsection{Particle Data Structures}
 \subsubsection{Carray}
@@ -157,7 +183,7 @@ calculation of gravitational accelerations from the current position of the part
 To include this as a source term we created a new class called \lstinline{SelfGravity}
 which inherits \lstinline{SourceTermBase}. As disscussed in section, gravity alters
 the momentum and primitive values.
-\begin{lstlisting}[caption={Self gravity implementation},label={lst:gravity}]
+\begin{lstlisting}
 ...
 cdef class SelfGravity(MUSCLHancockSourceTerm):
     ...
