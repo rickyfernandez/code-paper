@@ -22,7 +22,7 @@ c arrays.
 The exact implementation was taken from pysph code. The class is called Carray and
 can be initialized in Python or Cython. The interface closely resembles the list
 class of c++, in allowing indexing and memory management. Further, Carrays can return
-a numpy array, allowing the user to use all numpy functional (i.e. slicing and facny indexing). 
+a numpy array, allowing the user to use all numpy functional (i.e. slicing and fancy indexing). 
 Below is a simple example using a Carray.
 \begin{lstlisting}
 import phd
@@ -39,22 +39,22 @@ xnp[:] = np.arange(x.length)
 \end{lstlisting}
 In this example a Carray is created with 10 doubles, then assigned values by indexing. Notice
 that the length of the Carray can be found either by the len function or the length
-attribute. The Carray then has a value appended to it followd by resizing the Carray to a length
-of 5. Finally, the get npy array is called returing a numpy array which allows the use of slicing.
+attribute. The Carray then has a value appended to it followed by resizing the Carray to a length
+of 5. Finally, the get npy array is called returning a numpy array which allows the use of slicing.
 
 \subsubsection{CarrayContainer}
 The use of Carrays allow to easily manipulate arrays of certain type of data. However, there are
 many circumstances for the need of a collection of Carrays. For example the x, y, and z position
 of a particle or the center of mass and moments of a node in the gravitational tree. Therefore,
-another data structre has been implemented to facilitate the use of collection of Carrays. The data
+another data structure has been implemented to facilitate the use of collection of Carrays. The data
 structure is called a CarrayContainer and like the Carray it has many methods to manipulate the
-underlying data. The CarrayContainer in some aspects mimics a python dicitionary in the sense
+underlying data. The CarrayContainer in some aspects mimics a python dictionary in the sense
 that each carray can be retrieved by a string key.
 \begin{lstlisting}
 import phd
 import numpy as np
 
-carrys = {"x": "double", "x", "double"}
+carrys = {"x": "double", "y", "double"}
 
 ca_con = phd.CarrayContainer(10, carrays)
 size = ca_con.get_carray_size()
@@ -69,11 +69,42 @@ ca_con["y"][:] = np.random.rand(size)
 ca_con.append(ca_con2)
 ca_con.remove(np.array([1, 3, 9])
 \end{lstlisting}
-Most of the routines of Carrays have been extented to CarrayConatiner to operate on
-all Carrays in the Container. Further the container has routines to subet, remove, paste
+Most of the routines of Carrays have been extended to CarrayConatiner to operate on
+all Carrays in the Container. Further the container has routines to subset, remove, paste
 and add values to certain elements.
 
 \subsection{Simulation Class}
+The simulation class is the main driver for advancing the solution in time
+and coordinating outputs to disk and terminal. Its two most important methods are listed
+below
+\begin{itemize}
+	\item \textbf{solve()}: advance the integrator to its final state while outputting all
+    necessary information. 
+    \item \textbf{compute\_time\_step()}: aggregate all time steps and enforce the smallest.
+\end{itemize}
+The \textbf{solve()} method, from its inception, was designed to be 
+independent of the solvers. This was accomplished by distinguishing state computation methods and
+advancing state methods. For example, the integrator can only a perform a computation at a given
+state (see Section~\ref{sec.integrator} for details) while the simulation class can
+dictate when and the number of computations. Thus, the simulation class controls the time
+advancement independently of the equations being solved. As of writing three integrators exist,
+however, adding a new integrator is relatively straightforward.
+
+During the course of a simulation the simulation class calls 
+At the end of every time step the simulation class calls \textbf{compute\_time\_step()}
+For signaling to write to disk or completion of a simulation the simulation class uses 
+\textbf{outputters} and \textbf{Finishers} (see Section~\ref{sec.outputters} for details)
+respectively. Each \textbf{outputter} and \textbf{Finisher}
+is able to modify $dt$. The simulation class has the ability to cycle through all classes that
+produce or modify $dt$ and handle it accordingly. When an \textbf{outputter} hits its output
+time the simulation class allows
+
+Lastly, the simulation class also controls logging information (see Section~\ref{sec.logging}
+for details). 
+Log information is currently printed to the terminal and saved to a log file. The simulation class 
+allows the ability to pick how much information should be printed and saved. In parallel runs, the 
+root processor takes responsibility for writing to the log file and displaying to terminal.
+
 \subsubsection{Serialization of classes and parameters}
 
 \subsection{Mesh Class}
@@ -82,6 +113,7 @@ and add values to certain elements.
 \subsubsection{Flux Update}
 
 \subsection{Integrator Class}
+\label{sec.integrator}
 
 \subsection{Hydro Class}
 \subsubsection{Reconstruction}
@@ -94,6 +126,7 @@ and add values to certain elements.
 \subsubsection{HDF5}
 
 \subsection{Outputters and Finishers}
+\label{sec.outputters}
 \subsubsection{Design API}
 \subsubsection{Examples}
 
@@ -107,6 +140,13 @@ and add values to certain elements.
 \subsubsection{Boundary Condition}
 
 \subsection{Logging}
+\label{sec.logging}
+\begin{itemize}
+	\item debug: detailed information or diagnosing.
+    \item info: working as expected.
+    \item success: a successful completion. 
+    \item warning: unexpected result that may lead to future problem.
+\end{itemize}
 
 \subsection{Units}
 
