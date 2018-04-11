@@ -209,7 +209,7 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
     cpdef apply_conservative(self, object integrator):
         ...
         # add gravity acceleration from particle
-        for i in range(particles.get_carray_size()):
+        for i in range(integrator.particles.get_carray_size()):
             ...
                 for k in range(dim):
                     # update momentum
@@ -224,8 +224,68 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
 
 \subsection{Outputters and Finishers}
 \label{sec.outputters}
+The code has been desinged to handel arbritary signals for outputing data
+and completion of the simulation. 
+
 \subsubsection{Design API}
 \subsubsection{Examples}
+In this section we show, some what trivial but highlights the main points, an example of
+how to create an outputter and finisher. For our example, we use the sedov problem from 
+section cite. We are interested to output all time steps once the shock has reached
+a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
+use the analytical solution to extraplote when such values would occur. However that
+assumes the shock track exactly. In our scenario we let the simulation do the work
+for us.
+
+First we begin by defining an outputter with the objective to start outputing
+all data once the density value of $\rho=2$ has been reached (see code excerpt). This
+is accomplished by inherting \lstinline{SimulationOutputerBase} and modifying
+\lstinline{check_for_output} and \lstinline{modify_timestep}.
+
+
+\begin{lstlisting}
+...
+class OutputSedovDensity(SimulationOutputterBase):
+    def __init__(self, density_min, base_name="density_output",
+                 counter=0, pad=4, **kwargs):
+        super(OutputSedovDensity, self).__init__(base_name, counter, pad, **kwargs)
+        self.density_min = density_min 
+
+    def check_for_output(self, simulation):
+        """Return True to signal the simulation has reached
+        sedov interval to ouput data."""
+        integrator = simulation.integrator
+        state = simulation._state == SimulationTAGS.MAIN_LOOP
+        output_sedov = simulation.integrator.particles["density"].max() > self.density_min:
+
+        if state and output_sedov:
+            return True
+        return False
+
+    def modify_timestep(self, simulation):
+        """Return consistent time step."""
+        # not modifying
+        return simulation.integrator.dt
+
+\end{lstlisting}
+
+\begin{lstlisting}
+...
+class SedovDensityFinisher(SimulationFinisherBase):
+    ...
+    def __init__(self, density_max):
+        self.density_max = density_max
+
+    def finished(self, simulation):
+        """Return True to signal the simulation is finished
+        if reached max iteration number.
+        """
+        if simulation.integrator.particles["density"].max() >= self.density_max:
+            return True
+        else:
+            return False
+
+\end{lstlisting}
 
 \subsection{Load Balance}
 
