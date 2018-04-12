@@ -1,6 +1,8 @@
 \section{Code Design}
 In the following section we go over the design and rationale of our choices
-for the development of the code.
+for the development of the code. In several instances we will describe 
+methods that we believe are the most important and give examples of 
+implementation and modification.
 
 \subsection{Overall Class Design Considerations}
 \subsubsection{Field Registration}
@@ -224,10 +226,26 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
 
 \subsection{Outputters and Finishers}
 \label{sec.outputters}
-The code has been desinged to handel arbritary signals for outputing data
-and completion of the simulation. 
 
 \subsubsection{Design API}
+The code has been desinged to handle arbritary signals for outputing data
+and completion of the simulation. This has been achieved by introducing the
+\lstinline{SimulationOutputerBase} class for output and
+\lstinline{SimulationFinisherBase} class for completion.
+
+At the end of every
+time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
+of the simulation) a call to all registered outputers and finishers is
+performed. In each call the class has complete control of the integrator. Thus
+the classes can inspect the time, time step, iteration, particle data, flux data,
+reconstruciton data etc. This allows for a general conditions instead of hard
+coded ones. Further this opens the door to allow conditions
+
+the options are plentiful and we hope to make large of use in the next
+revision of the code.
+
+In the case of \lstinline{SimulationOutputerBase} a writer is registered with it.
+
 \subsubsection{Examples}
 In this section we show, some what trivial but highlights the main points, an example of
 how to create an outputter and finisher. For our example, we use the sedov problem from 
@@ -240,12 +258,15 @@ for us.
 First we begin by defining an outputter with the objective to start outputing
 all data once the density value of $\rho=2$ has been reached (see code excerpt). This
 is accomplished by inherting \lstinline{SimulationOutputerBase} and modifying
-\lstinline{check_for_output} and \lstinline{modify_timestep}.
+\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
+\lstinline{check_for_output}, we check is the the outputter is the main loop state
+and if the max density is greated than \lstinline{density_min}. Moreover, there
+is no need to change the time step, therefore, it is left unaltered.
 
 
 \begin{lstlisting}
 ...
-class OutputSedovDensity(SimulationOutputterBase):
+class OutputSedovDensity(SimulationOutputerBase):
     def __init__(self, density_min, base_name="density_output",
                  counter=0, pad=4, **kwargs):
         super(OutputSedovDensity, self).__init__(base_name, counter, pad, **kwargs)
@@ -256,7 +277,7 @@ class OutputSedovDensity(SimulationOutputterBase):
         sedov interval to ouput data."""
         integrator = simulation.integrator
         state = simulation._state == SimulationTAGS.MAIN_LOOP
-        output_sedov = simulation.integrator.particles["density"].max() > self.density_min:
+        output_sedov = integrator.particles["density"].max() >= self.density_min:
 
         if state and output_sedov:
             return True
@@ -268,12 +289,16 @@ class OutputSedovDensity(SimulationOutputterBase):
         return simulation.integrator.dt
 
 \end{lstlisting}
-
+At this point our data will be outputted untill the simulation is finished. To
+create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
+we create a new class \lstinline{SedovDensityFinisher}. This class inherits
+\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
+method. In our case we need only to compare our max density values with
+$\rho_{\mathrm{max}}$.
 \begin{lstlisting}
 ...
 class SedovDensityFinisher(SimulationFinisherBase):
-    ...
-    def __init__(self, density_max):
+    def __init__(self, density_max, **kwargs):
         self.density_max = density_max
 
     def finished(self, simulation):
@@ -287,9 +312,21 @@ class SedovDensityFinisher(SimulationFinisherBase):
 
 \end{lstlisting}
 
+Although are example was simplisitic, we hope that it shows the flexibiliyt and power
+what the outputters and finishers may achieve.  
+
 \subsection{Load Balance}
 
 \subsection{Equation of State}
+Our equation state is implemented through \lstinline{EquationStateBase}. We
+decided 
+\begin{itemize}
+    \item \lstinline{conservative_from_primitive()}: modify primitive variables.
+    \item \lstinline{primitive_from_conservative()}: modify consevative variables.
+    \item \lstinline{sound_speed()}: modify flux terms.
+    \item \lstinline{get_gamma()}: calculate soure components.
+\end{itemize}
+
 
 \subsection{Domain Manager}
 \subsubsection{Internal Boundary Particle Sharing}
