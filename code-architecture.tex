@@ -8,28 +8,51 @@ implementation and modification.
 \subsubsection{Field Registration}
 Form our past experience, we have found one of the challenging problems in maintaining codes
 is that of adding new fields. There are many reasons why to add new fields, for example,
-an implementation of new physics (mhd, radiation, chemistry etc.) or adding a passive scalar
-to track some portion of fluid or modification of existing algorithm that needs an auxiliary
-field that has not been stored. In any case, the addition of a new field can be challenging
+an implementation of new physics (MHD, radiation, chemistry etc.) or adding a passive scalar
+to track some portion of the fluid or modification of an existing algorithm that needs an auxiliary
+field which has not been stored. In any case, the addition of a new field can be challenging
 if the computation has been hard coded or the data structures, for example C structs, do not
 allow the addition of new fields. For this reason, we early on adopted a data structure
-that allows registration of fields. In this manner fields can be added at any later point.
+that allows registration of fields (see Section~\ref{sec.carraycontainer}). In this manner
+fields can be easily added in the future.
 
-For these considerations we will see a common thread with most of our classes. Most of our
-classes will have some form of registration or addition of fields. For registration, the
-class usually inspects the particle data structure and creates the fields necessary to
-during the simulation. In the case of addition, the class will search the particles fields
-and if the fields are not present the class will add them.
+From these considerations we will see a common thread with our classes, most have a method
+for field registration or addition:
+\begin{itemize}
+	\item \lstinline{register_fields()} add fields to the simulation.
+    \item \lstinline{add_fields()} add fields to self by inspecting current simulation fields.
+\end{itemize}
+For registration, the class usually inspects the particle data structure and creates fields
+necessary for the simulation. As an example, gravity registers the acceleration to the particles
+in the proper dimension. In this manner, we don't have unnecessary fields during the simulation
+(3D fields for 2D runs). Likewise, for addition of fields the class usually inspects the
+particle data and proceeds to register the proper fields internally. For example, gravity 
+registers internally tree moment fields with the proper dimension.
 
-\subsubsection{Class Registration}
+Since any number of fields can be registered, we have also allowed the ability to group
+fields by names. This has been extensively used to group collection of fields like
+primitive and conservative fields. This has allowed to easily retrieve collection of fields
+that are related and can be computed as a collection.
+
+\subsubsection{Class Dependencies}
 Another source for future problems is when an algorithm depends on another. For example
-our gravity tree solver depends on our load balance implementation. If these algorithms
-where designed concurrently then though would be taken on how they should interact
-with one another. However, it is very common that new implementations are needed after 
-due to the progression of new algorithms. In these situations common options are to re-factor
-the algorithms or even rewrite the algorithm itself.
+our gravity tree solver depends on our load balance implementation. If the algorithms
+are designed concurrently, then proper consideration is taken on how they will
+interact with one another. However, because of developments of new algorithms or experimentation, 
+classes will eventually need to interact with others that where not originally designed for. In these
+situations common options are to re-factor the algorithm or even rewrite the algorithm itself. Both 
+methods can become cumbersome as the code develops and matures and changing one portion of the code 
+may create a cascade of other changes.
 
-In our case we decided to write our classes as stand alone computations
+In our case we decided to write our classes as encapsulated computations. This means we have
+tried to segregate computations as independent tasks and interactions between classes are 
+defined through their api. For the most part, each computation has a base class (i.e 
+\lstinline{ReconstructionBase}, \lstinline{RiemannBase}, \lstinline{InetgrateBase} etc.) that
+defines the methods it can perform. Moreover, the base class only serves as a template and
+returns a warning if accessed. Thus, each implementation inherits the base class and defines
+the actual computation. Further if a method depends another class it has to be written in
+the confines of the api. Therefore, our algorithms are designed in confirm to an api
+and any development of a future class will have to abide by it.
 
 \subsection{Particle Data Structures}
 \subsubsection{Carray}
@@ -45,11 +68,11 @@ processors in parallel runs. Further numpy has an interface, that treats
 arrays of structs as record numpy arrays. However, this form was abandoned early on
 as the sub-fields would have to be hard coded and would not allow the creation of
 dynamic fields at run time. With this consideration, the raw data was chosen to be
-c arrays. 
+C arrays. 
 
 The exact implementation was taken from pysph code. The class is called Carray and
 can be initialized in Python or Cython. The interface closely resembles the list
-class of c++, in allowing indexing and memory management. Further, Carrays can return
+class of C++, in allowing indexing and memory management. Further, Carrays can return
 a numpy array, allowing the user to use all numpy functional (i.e. slicing and fancy indexing). 
 Below is a simple example using a Carray.
 \begin{lstlisting}
@@ -71,6 +94,7 @@ attribute. The Carray then has a value appended to it followed by resizing the C
 of 5. Finally, the get npy array is called returning a numpy array which allows the use of slicing.
 
 \subsubsection{CarrayContainer}
+\label{sec.carraycontainer}
 The use of Carrays allow to easily manipulate arrays of certain type of data. However, there are
 many circumstances for the need of a collection of Carrays. For example the x, y, and z position
 of a particle or the center of mass and moments of a node in the gravitational tree. Therefore,
@@ -125,7 +149,7 @@ classes respectively (see Section~\ref{sec.outputters} for details). At the end 
 step the class calls \lstinline{compute_time_step()} to modify the current time step and
 output any necessary data by cycling through all outputters. Likewise, at the beginning of
 the time step the class cycles through all \lstinline{SimulationFinisherBase} classes 
-search for a termination signal.
+in search for a termination signal.
 
 Lastly, the simulation class also controls logging information (see Section~\ref{sec.logging}
 for details). 
@@ -341,7 +365,3 @@ decided
     \item success: a successful completion. 
     \item warning: unexpected result that may lead to future problem.
 \end{itemize}
-
-\subsection{Units}
-
-\subsection{Profiling}
