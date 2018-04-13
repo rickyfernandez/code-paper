@@ -336,7 +336,7 @@ class SedovDensityFinisher(SimulationFinisherBase):
 
 \end{lstlisting}
 
-Although are example was simplisitic, we hope that it shows the flexibiliyt and power
+Although are example was simplistic, we hope that it shows the flexibility and power
 what the outputters and finishers may achieve.  
 
 \subsection{Load Balance}
@@ -346,16 +346,75 @@ Our equation state is implemented through \lstinline{EquationStateBase}. We
 decided 
 \begin{itemize}
     \item \lstinline{conservative_from_primitive()}: modify primitive variables.
-    \item \lstinline{primitive_from_conservative()}: modify consevative variables.
+    \item \lstinline{primitive_from_conservative()}: modify conservative variables.
     \item \lstinline{sound_speed()}: modify flux terms.
-    \item \lstinline{get_gamma()}: calculate soure components.
+    \item \lstinline{get_gamma()}: calculate source components.
 \end{itemize}
 
 
 \subsection{Domain Manager}
+Our \lstinline{DomainManager} class is designed to handle all information associated with
+the domains of the simulation. We consider a domain to be the spatial region where the computation
+is performed. In serial, this is the entire spatial region of the simulation.
+In parallel, each spatial region associated with a processor is considered
+a domain. The two most important tasks of the \lstinline{DomainManger} is summarized below:
+\begin{itemize}
+	\item Create ghost particles.
+    \item Transfer data across boundaries.
+\end{itemize}
+For ghost particle we make a further distinction, interior and exterior ghost particles.
+Interior ghost particles are only used in parallel simulations while exterior ghost
+particles are associated with the boundary conditions of the simulation. In the following
+section we will go into the details on how the DomainManager creates ghost particles
+and transfers data.
+
 \subsubsection{Internal Boundary Particle Sharing}
-\subsubsection{Particle Motion}
+In parallel, particles are decomposed into a disjoint set of spatial domains
+with each domain mapped to a unique processor. The construction
+of the global Voronoi mesh is delegated to the construction of a disjoint set
+of local Voronoi meshes. For the set of local constructions to be consistent
+with the global mesh, the appropriate boundary particles must be 
+communicated across domains.
+
+Interior ghost particles, are particles formed from neighboring domains and are used to
+connect local meshes together. Their creation is handled by the \lstinline{DomainManager}
+through the \lstinline{create_interior_ghost_particles()} method. This method
+creates interior ghost particles by inspecting the search radius of
+each local particle. If a particles search radius overlaps with a processor
+boundary then it is flagged and a ghost particle is created and exported to that processor. 
+Care is taken such that no duplicates are created through the whole process. After each
+particle is checked all ghost particles are communicated and the mesh is allowed to updated itself.
+This procedure is repeated until no more particles are flagged.
+
 \subsubsection{Boundary Condition}
+Similar to interior ghost particles, exterior ghost particles are used to
+complete local meshes. However, exterior ghost particles are not from neighboring
+domains but instead are created through a boundary condition. To allow for different
+boundary condition we have created \lstinline{BoundaryConditionBase} that interacts
+with \lstinline{DomainManager}.
+
+1. during the course of mesh creation the mesh flags bad particles
+2. the boundary passes those bad particles to the boundary condition
+3. new particles are created and the boundary gives them back to the mesh
+4. process repeat until the mesh has converged
+5. domain manager responsible to sort and keep track of which particles
+6. are ghost.
+
+\subsubsection{Data Communication}
+The \lstinline{DomainManager} keeps track of all domains. 
+3. the domain manager helps finding these ghost particles
+4. after created the domain manager is responsible in transfering data
+The detail of ghost creation will be discussed in Sections. After the creation
+of ghost particles, supplemental data has to be communicated. For example, the
+center of mass can not be computed locally for the ghost particle since it is
+not guaranteed that all neighbors of the ghost particle exist locally. Our ghost
+particle implementation only guarantees that all particle 
+
+\subsubsection{Particle Motion}
+1. after particle movement particles need to the correct point in space
+2. for particle that leave the domain the boundary condition handles it
+3. in parallel leaving a patch domain has to be communicated
+
 
 \subsection{Logging}
 \label{sec.logging}
