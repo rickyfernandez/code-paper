@@ -480,3 +480,8 @@ give run.
 In practice, for each particle a Peano-Hilbert key is computed. The key
 
 \subsubsection{Ghost particle copying}
+For ghost particle we make a further distinction, interior and exterior ghost particles.
+Interior ghost particles are only used in parallel simulations while exterior ghost
+particles are associated with the boundary conditions of the simulation. In the following
+section we will go into the details on how the DomainManager creates ghost particles
+and transfers data.

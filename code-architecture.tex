@@ -353,25 +353,26 @@ decided
 
 
 \subsection{Domain Manager}
-Our \lstinline{DomainManager} class is designed to handle all information associated with
+Our \lstinline{DomainManager} class is designed to handle information associated with
 the domains of the simulation. We consider a domain to be the spatial region where the computation
 is performed. In serial, this is the entire spatial region of the simulation.
-In parallel, each spatial region associated with a processor is considered
-a domain. The two most important tasks of the \lstinline{DomainManger} is summarized below:
-\begin{itemize}
-	\item Create ghost particles.
-    \item Transfer data across boundaries.
-\end{itemize}
-For ghost particle we make a further distinction, interior and exterior ghost particles.
-Interior ghost particles are only used in parallel simulations while exterior ghost
-particles are associated with the boundary conditions of the simulation. In the following
-section we will go into the details on how the DomainManager creates ghost particles
-and transfers data.
+In parallel, this is the spatial region associated with each processor. 
+In this way, for the most part, our domains are isolated computations and when
+data is needed from neighboring domains they are requested through the \lstinline{DomainManager}.
+
+The \lstinline{DomainManager} was initially designed to contain the limits and dimension of
+the problem. As development continued it became natural that the \lstinline{DomainManager} would
+encompass the boundary condition, ghost particle information, and exchange of data across boundaries.
+At its current state, the \lstinline{DomainManager} only supports communication of ghost particle data
+and does not support the general forms of data communication
+(i.e reduction, gathers, broadcast etc). We plan in the next revision to implement an api that
+performs these task. In doing so, we would remove strict dependence on MPI functions and only
+work through the \lstinline{DomainManager}.
 
 \subsubsection{Internal Boundary Particle Sharing}
 In parallel, particles are decomposed into a disjoint set of spatial domains
 with each domain mapped to a unique processor. The construction
-of the global Voronoi mesh is delegated to the construction of a disjoint set
+of the global Voronoi mesh is then delegated to the construction of a disjoint set
 of local Voronoi meshes. For the set of local constructions to be consistent
 with the global mesh, the appropriate boundary particles must be 
 communicated across domains.
@@ -381,46 +382,93 @@ connect local meshes together. Their creation is handled by the \lstinline{Domai
 through the \lstinline{create_interior_ghost_particles()} method. This method
 creates interior ghost particles by inspecting the search radius of
 each local particle. If a particles search radius overlaps with a processor
-boundary then it is flagged and a ghost particle is created and exported to that processor. 
-Care is taken such that no duplicates are created through the whole process. After each
-particle is checked all ghost particles are communicated and the mesh is allowed to updated itself.
-This procedure is repeated until no more particles are flagged.
+boundary then it is flagged and a corresponding ghost particle is created and exported to that processor.
+The search method is made possible by the \lstinline{DomainManager}s ability to query
+all domains through geometrical searches. Care is taken such that no duplicates are created through the 
+whole process. After each particle is inspected, ghost particles are communicated and then the
+mesh is allowed to updated itself. This procedure is repeated until particles are no longer flagged.
 
 \subsubsection{Boundary Condition}
 Similar to interior ghost particles, exterior ghost particles are used to
 complete local meshes. However, exterior ghost particles are not from neighboring
 domains but instead are created through a boundary condition. To allow for different
 boundary condition we have created \lstinline{BoundaryConditionBase} that interacts
-with \lstinline{DomainManager}.
+with \lstinline{DomainManager}. The api is listed below:
+\begin{itemize}
+	\item \lstinline{create_ghost_particle()} create ghost particle from flagged particle.
+    \item \lstinline{migrate_particles()} for particles that have left the domain, apply
+    appropriate boundary condition.
+    \item \lstinline{update_gradients()} apply boundary condition to ghost particle gradients.
+    \item \lstinline{update_fields()} apply boundary condition to ghost particle fields.
+\end{itemize}
+Through this api, any boundary condition may be implemented. The boundary condition does not have
+to be uniform in each dimension. Mixed boundaries or even problem specific boundaries are allowed
+in this framework. Furthermore, the api allows the boundary
+condition to modify particle motion and field data. In this way, we have extracted all boundary
+information from the \lstinline{DomainManager}.
 
-1. during the course of mesh creation the mesh flags bad particles
-2. the boundary passes those bad particles to the boundary condition
-3. new particles are created and the boundary gives them back to the mesh
-4. process repeat until the mesh has converged
-5. domain manager responsible to sort and keep track of which particles
-6. are ghost.
+Currently, we have two implementations of boundary conditions, reflective and periodic.
+In the reflective case, the flagged particle is mirrored across each boundary edge of the
+simulation. If an intersection occurs, a ghost particle is created with its normal velocity flipped.
+In the serial case, the ghost particle is added directly to the particle data container. In parallel, the 
+ghost particle is then further inspected for intersection of neighboring processors. The ghost particle
+is then placed in a communication to be exported to each flagged processor. For the periodic case
+the procedure is similar, with the exception that particle is periodically shifted
+instead of being mirrored.
 
 \subsubsection{Data Communication}
-The \lstinline{DomainManager} keeps track of all domains. 
-3. the domain manager helps finding these ghost particles
-4. after created the domain manager is responsible in transfering data
-The detail of ghost creation will be discussed in Sections. After the creation
-of ghost particles, supplemental data has to be communicated. For example, the
-center of mass can not be computed locally for the ghost particle since it is
-not guaranteed that all neighbors of the ghost particle exist locally. Our ghost
-particle implementation only guarantees that all particle 
+After the creation of ghost particles, in parallel simulations, supplemental data has to be communicated. 
+For example, the center of mass may not be computed locally because its neighbors may not exist locally.
+This is because our implementation of ghost particles only to guarantees all neighbors of local
+particles. Certainly we could of opted to import all neighbors of ghost particles but instead we have 
+decided to communicate that information instead. Thus, the \lstinline{DomianManager} records all information
+associated with a ghost particle. This allows ghost particles to be easily updated with any data. These
+operations are implemented through \lstinline{update_ghost_fields()} and 
+\lstinline{update_ghost_gradients()}
 
 \subsubsection{Particle Motion}
-1. after particle movement particles need to the correct point in space
-2. for particle that leave the domain the boundary condition handles it
-3. in parallel leaving a patch domain has to be communicated
+After a flux update, the particles are allowed to move. Depending on initial particle position and
+velocity a particle may leave its processor or the simulation domain. In either case, the 
+\lstinline{DomainManager} is responsible for the destintation of the particle.
 
+When a particle leaves the simulation domain in serial or parallel the \lstinline{DomainManager}
+flags that particle and then applies the boundary condition. For reflective boundaries the particle is not
+allowed to leave and for periodic boundaries the particle is wrapped back into the domain. If the simulation
+is in parallel the \lstinline{DomainManager} exports the particle to the correct processor and removes
+it from the local particle container. If a particle leaves its processor patch the \lstinline{DomainManager}
+will query all domains and find the correct domain for export.
 
 \subsection{Logging}
 \label{sec.logging}
+Event logging during a simulation is performed through the python 
+\texttt{logging}\footnote{\url{https://docs.python.org/2/library/logging.html}} library. The library has 
+many capabilities but for our intentions we have focused on displaying and storing messages related to the
+state of the simulation. To that end, we use one logger called \lstinline{phdLogger}. This 
+logger can be imported to any file and used to log any information of interest.
+
+For our purposes, the logger has four levels of logging. They are listed below:
 \begin{itemize}
 	\item debug: detailed information or diagnosing.
     \item info: working as expected.
     \item success: a successful completion. 
     \item warning: unexpected result that may lead to future problem.
 \end{itemize}
+The log levels have been listed in order of inclusion. Meaning if ``warning'' is chosen, then all messages
+types are logged. However if ``info'' is chosen only messages of type ``debug" and ``info'' or logged.
+At runtime the log level and file to store the messages can be specified through the 
+\lstinline{Simulation} class.
+
+As an example we show a simple usage of the logger below:
+\begin{lstlisting}
+import logging
+phdLogger = logging.getLogger("phd")
+...
+phdLogger.info("Starting kinetic energy calculation")
+kinetic_energy = particles["mass"]*(particles["velocity-x"]**2 + particles["velocity-y"]**2)
+
+if kinetic_energy.sum() > 0:
+	phdLogger.debug("Kinetic energy greater than zero")
+\end{lstlisting}
+In this example we import the logger and print out a messages related to the calculation of the
+kinetic energy. It is important to note that this example is true if run in serial or parallel. The logger
+has been modified such that logging information and storage is always handled by the root processor.
