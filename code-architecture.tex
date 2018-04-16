@@ -166,6 +166,90 @@ root processor takes responsibility for writing to the log file and displaying t
 
 \subsection{Integrator Class}
 \label{sec.integrator}
+1. current implementations, hard code solver
+2. need to allow the ability to quickly create solver for different
+   physics or algorithm.
+3. Our implementation allows for this
+4. Since all our computation are core blocks we can build a solver
+   by selecting the calls
+6. we currently have three implementations 
+
+The implementation of the equaitons to be solved are performd throught
+the \lstinline{IntegrateBase} class. This class is responsible to perform
+the nesscary actions to progress the equations to one time step. The
+integrator uses the other classes as building blocks. Currently we 
+have implemented the static and moving mesh muscle hancock scheme
+and a leap frog integrator. The idea is to separate the order of computation
+from the simulation and core computation. In this way any solver can
+quickly built by inheriting the solver. 
+
+The api is listed below:
+\begin{itemize}
+    \item \lstinline{before_loop()}
+    \item \lstinline{compute_time_step()}
+    \item \lstinline{evolve_time_step()}
+    \item \lstinline{after_loop()}
+\end{itemize}
+
+
+\begin{lstlisting}
+def evolve_timestep(self):
+    """Solve the compressible gas equations."""
+
+    phdLogger.info("StaticMeshMUSCLHancock: Starting integration")
+
+    # build left/right states at each face in the mesh
+    self.reconstruction.compute_gradients(self.particles, self.mesh,
+            self.domain_manager)
+    self.reconstruction.compute_states(self.particles, self.mesh,
+            self.equation_state.get_gamma(), self.domain_manager, 0.5*self.dt,
+            self.riemann.boost)
+    self.compute_source("primitive")
+
+    # solve riemann problem, generate flux
+    self.riemann.compute_fluxes(self.particles, self.mesh, self.reconstruction,
+            self.equation_state)
+
+    # update conservative from fluxes
+    self.mesh.update_from_fluxes(self.particles, self.riemann, self.dt)
+    self.compute_source("flux")
+    self.compute_source("compute")
+
+    self.compute_source("conservative")
+    self.domain_manager.update_ghost_fields(self.particles,
+            self.particles.carray_named_groups["conservative"],
+            True)
+
+    # convert updated conservative to primitive
+    self.equation_state.primitive_from_conservative(self.particles)
+    self.iteration += 1; self.time += self.dt
+\end{lstlisting}
+
+\begin{lstlisting}
+def evolve_timestep(self):
+    """Evolve the simulation for one time step."""
+
+    # kick
+    for ax in self.axis:
+        self.particles["velocity-"+ax][:] += 0.5*self.dt*self.particles["acceleration-"+ax][:]
+
+    # drift
+    for ax in self.axis:
+        self.particles["position-"+ax][:] += self.dt*self.particles["velocity-"+ax][:]
+
+    if phd._in_parallel:
+        self.load_balance.decomposition(self.particles)
+
+    # compute new acceleration
+    self.gravity_tree.build_tree(self.particles)
+    self.gravity_tree.walk(self.particles)
+
+    # kick
+    for ax in self.axis:
+        self.particles["velocity-"+ax][:] += 0.5*self.dt*self.particles["acceleration-"+ax][:]
+
+    self.iteration += 1; self.time += self.dt
+\end{lstlisting}
 
 \subsection{Hydro Class}
 \subsubsection{Reconstruction}
