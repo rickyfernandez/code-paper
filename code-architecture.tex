@@ -166,32 +166,37 @@ root processor takes responsibility for writing to the log file and displaying t
 
 \subsection{Integrator Class}
 \label{sec.integrator}
-1. current implementations, hard code solver
-2. need to allow the ability to quickly create solver for different
-   physics or algorithm.
-3. Our implementation allows for this
-4. Since all our computation are core blocks we can build a solver
-   by selecting the calls
-6. we currently have three implementations 
+To advance the the state of a fluid to a specific time, a suitable integration
+scheme must be provided. Although we have laid out the details of the MUSCL-Hancock scheme
+in section cite, in practice, many schemes are available with different degrees of 
+strengths and weaknesses. Therefore, we found it necessary to have an implementation
+that allows the ability to easily switch from integration schemes. To this end, we have
+created the \lstinline{IntegrateBase} class which is responsible to advance the state
+of the system by one time step. In this way, a simulation is viewed as a series of calls
+to \lstinline{IntegrateBase} by the \lstinline{Simulation} class.
+Note we say system, not the Euler equations. This
+distinction is made because the \lstinline{IntegrateBase} is not limited to the Euler
+equations and, in principle, can be used to implement other equations. As an example,
+we have implemented a gravitational N-body solver in this framework. We find
+this framework to be versatile, allowing the user to chose from different schemes
+and allowing the ability to quickly create new schemes for experimentation.
+Currently we have implemented a static and moving mesh MUSCL-Hancock and a leap
+frog integrator.
 
-The implementation of the equaitons to be solved are performd throught
-the \lstinline{IntegrateBase} class. This class is responsible to perform
-the nesscary actions to progress the equations to one time step. The
-integrator uses the other classes as building blocks. Currently we 
-have implemented the static and moving mesh muscle hancock scheme
-and a leap frog integrator. The idea is to separate the order of computation
-from the simulation and core computation. In this way any solver can
-quickly built by inheriting the solver. 
-
-The api is listed below:
+To implement an integrator, the \lstinline{IntegrateBase} must be inherited. Below
+is the \lstinline{IntegrateBase} api:
 \begin{itemize}
-    \item \lstinline{before_loop()}
-    \item \lstinline{compute_time_step()}
-    \item \lstinline{evolve_time_step()}
-    \item \lstinline{after_loop()}
+    \item \lstinline{before_loop()} perform any needed initialization or initial computations. 
+    \item \lstinline{compute_time_step()} compute current state time step.
+    \item \lstinline{evolve_time_step()} evolve the state of the system by one time step.
+    \item \lstinline{after_loop()} perform any clean up or needed final computations.
 \end{itemize}
-
-
+For each integrator implementation one must define each method from the api. The integrator
+has references to all the computation classes as well as state attributes (iteration
+counter, time step, and time). The most
+involved method is the \lstinline{evolve_time_step()} which defines the equations
+and method to be used. For clarity, we shown two integrator examples below. The first
+is an implementation of a non moving mesh MUSCL-Hancock integrator.
 \begin{lstlisting}
 def evolve_timestep(self):
     """Solve the compressible gas equations."""
@@ -224,32 +229,13 @@ def evolve_timestep(self):
     self.equation_state.primitive_from_conservative(self.particles)
     self.iteration += 1; self.time += self.dt
 \end{lstlisting}
+As it can be seen the method is a series of core computations. The method
+begins by calculating the gradients followed by computing the left/right
+states for the riemann solver. Once the fluxes are calculated they are used
+to update the fields. Sprinkled in are calls to source terms, if any.
+Finally the ghost particles, iteration counter and
+time are updated and the system is ready for the next computation.
 
-\begin{lstlisting}
-def evolve_timestep(self):
-    """Evolve the simulation for one time step."""
-
-    # kick
-    for ax in self.axis:
-        self.particles["velocity-"+ax][:] += 0.5*self.dt*self.particles["acceleration-"+ax][:]
-
-    # drift
-    for ax in self.axis:
-        self.particles["position-"+ax][:] += self.dt*self.particles["velocity-"+ax][:]
-
-    if phd._in_parallel:
-        self.load_balance.decomposition(self.particles)
-
-    # compute new acceleration
-    self.gravity_tree.build_tree(self.particles)
-    self.gravity_tree.walk(self.particles)
-
-    # kick
-    for ax in self.axis:
-        self.particles["velocity-"+ax][:] += 0.5*self.dt*self.particles["acceleration-"+ax][:]
-
-    self.iteration += 1; self.time += self.dt
-\end{lstlisting}
 
 \subsection{Hydro Class}
 \subsubsection{Reconstruction}
