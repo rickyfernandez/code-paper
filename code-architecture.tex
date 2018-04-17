@@ -236,48 +236,79 @@ to update the fields. Sprinkled in are calls to source terms, if any.
 Finally the ghost particles, iteration counter and
 time are updated and the system is ready for the next computation.
 
-
 \subsection{Hydro Class}
 \subsubsection{Reconstruction}
+Once the mesh is created, cell center values need to be reconstructed at cell center faces
+in order to calculate the fluxes. The interface to implement a reconstruction
+scheme is dictated by \lstinline{ReconstructionBase} class. The api of the base class is
+listed below:
+\begin{itemize}
+	\item \lstinline{compute_gradients()} calculate the gradients of the fields for each particles.
+    \item \lstinline{add_spatial()} add gradients to expansion.
+    \item \lstinline{add_temporal()} add time derivatives to expansion.
+\end{itemize}
+The api embodies a general deconstruction of eq. which is taylor expansion from the
+center cell values to face values. In our case we have deconstructed the equation into
+three calls. First, is the calculation of the spatial derivatives (gradients). In this
+call the derivatives are computed which could be through geometrical cite, least square cite or any other
+method. With the derivatives calculated center values are then spatially and temporal
+extrapolated. The reason we break the extrapolation into spatial and temporal is to
+allow the user complete control. As for example some schemes are predictor and corrector
+schemes, functionality is needed .
+
 \subsubsection{Riemann Solver}
+The fluxes at each face of the mesh is constructed by the \lstinline{RiemannBase} class.
+As a common thread with all of our computation classes, the base class defines the api.
+The api is straight forward with only two methods to define:
+\begin{itemize}
+	\item \lstinline{riemann_solver()} solve for fluxes at each interface.
+    \item \lstinline{compute_time_step()} compute hydro time step.
+\end{itemize}
+The \lstinline{compute_time_step()} is optional since the base class has a default
+CFL constrained time step calculation. However the option is there if a particular 
+solver implementation needs to modify it. Furthermore, the base class defines a 
+method for the fluxes to be transformed back into the lab frame. This allows,
+for the most part, to implement a solver without worrying about the details of
+rotating and boosting back into the lab frame. As of time of writing, we have
+implemented the HLL, HLLC, and Exact Riemann solvers.
 
 \subsection{General Source Terms}
 The inclusion of source terms has been implemented through a general source
 \lstinline{SourceTermBase} with methods listed below:
 \begin{itemize}
     \item \lstinline{apply_primitve()}: modify primitive variables.
-    \item \lstinline{apply_conservative()}: modify consevative variables.
+    \item \lstinline{apply_conservative()}: modify conservative variables.
     \item \lstinline{apply_flux()}: modify flux terms.
-    \item \lstinline{compute_source()}: calculate soure components.
+    \item \lstinline{compute_source()}: calculate source components.
     \item \lstinline{compute_time_step()}: calculate time step from source term.
 \end{itemize}
 This formulation was chosen after some considerable experimentation. One of the
 earlier attempts was a registration process. In this scenario a source term
 would link any computation to class method. This information was stored
 in a dictionary inside \lstinline{Simulation} and at runtime each class method
-was over written using Pythons decorator shcheme. Although, this scheme makes
-use of more advnace programming methods we found that this implementation was
+was over written using Pythons decorator scheme. Although, this scheme makes
+use of more advance programming methods we found that this implementation was
 not easy to discern. Moreover we found that this method left to much ambiguity
 to the source terms, allowing . Instead we
-found this current implementation to be more understanble and easier to
+found this current implementation to be more understandable and easier to
 generalize.
 
 The api listed above are the mandatory methods to be defined for any source
 term. In general, we write an interface for each given source term. In this
 way if the integrator changes only the api has to be updated leaving
 the core of the source term unaltered. This also allows to easily implement
-third party libraries as source terms, chemsitry or radiation for example.
+third party libraries as source terms, chemistry or radiation for example.
 Once the methods have been defined the class is registered to 
 \lstinline{Simulation} class and will be invoked at the appropriate parts
 during the computation.
 
 \subsubsection{Gravity}
 For a more concrete example of how to include a source term we highlight the
-pieces used to include self gravity. Our self gravity is a tree based implemetation
+pieces used to include self gravity. Our self gravity is a tree based implementation
 named \lstinline{GravityTree}. Its main routine is \lstinline{walk()} which is the
 calculation of gravitational accelerations from the current position of the particles.
 To include this as a source term we created a new class called \lstinline{SelfGravity}
-which inherits \lstinline{SourceTermBase}. As disscussed in section, gravity alters
+which inherits \lstinline{SourceTermBase}. As discussed in section, gravity alters
 the momentum and primitive values.
 \begin{lstlisting}
 ...
@@ -322,7 +353,7 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
 \label{sec.outputters}
 
 \subsubsection{Design API}
-The code has been desinged to handle arbritary signals for outputing data
+The code has been desinged to handle arbitrary signals for outputing data
 and completion of the simulation. This has been achieved by introducing the
 \lstinline{SimulationOutputerBase} class for output and
 \lstinline{SimulationFinisherBase} class for completion.
@@ -345,16 +376,16 @@ In this section we show, some what trivial but highlights the main points, an ex
 how to create an outputter and finisher. For our example, we use the sedov problem from 
 section cite. We are interested to output all time steps once the shock has reached
 a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
-use the analytical solution to extraplote when such values would occur. However that
+use the analytical solution to extrapolate when such values would occur. However that
 assumes the shock track exactly. In our scenario we let the simulation do the work
 for us.
 
 First we begin by defining an outputter with the objective to start outputing
 all data once the density value of $\rho=2$ has been reached (see code excerpt). This
-is accomplished by inherting \lstinline{SimulationOutputerBase} and modifying
+is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
 \lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
 \lstinline{check_for_output}, we check is the the outputter is the main loop state
-and if the max density is greated than \lstinline{density_min}. Moreover, there
+and if the max density is greater than \lstinline{density_min}. Moreover, there
 is no need to change the time step, therefore, it is left unaltered.
 
 
@@ -383,7 +414,7 @@ class OutputSedovDensity(SimulationOutputerBase):
         return simulation.integrator.dt
 
 \end{lstlisting}
-At this point our data will be outputted untill the simulation is finished. To
+At this point our data will be outputted until the simulation is finished. To
 create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
 we create a new class \lstinline{SedovDensityFinisher}. This class inherits
 \lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
