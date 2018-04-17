@@ -354,6 +354,45 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
 \end{lstlisting}
 
 \subsection{Readers/Writers}
+To allow the code to output different data formats, we have implemented 
+a \lstinline{ReaderWriterBase} class. This gives the freedom to the user
+in what format should the particle information be saved in. Likewise, this
+allows that data to be read in any format. The standard api of the 
+\lstinline{ReaderWriterBase} is listed below:
+\begin{itemize}
+	\item \lstinline{read()} read data in a specific format.
+    \item \lstinline{write()} write data in a specific format.
+\end{itemize}
+With such a framework, new formats can be easily implemented. Further, this
+allows a simple way to create a front end to read data from another simulation.
+
+Although this framework facilitates the option to save data in different formats,
+we believe this framework has more general capabilities. Since the \lstinline{ReaderWriterBase}
+has accessed to the integrator, any component of the simulation and be considered for
+output. Moreover, analysis can be performed ouputing information that techniqua
+
+\begin{lstlisting}
+...
+class EnergyTracker(ReaderWriterBase):
+	def write(self, base_name, output_directory, integrator):
+   		particles = integrator.particles
+        
+   		# compute square velocity
+        v2 = particles["velocity-x"]**2 + particles["velocity-y"]**2
+        if len(particles.carray_named_groups["position"]) == 3:
+        	v2 += particles["velocity-z"]**2
+            
+        # calculate kinetic and potential energy of system    
+        kinetic = (0.4*particles["mass"]*v2).sum()
+        potential = 0.5*(particles["mass"]*particles["potential"]).sum()
+        
+        message = "Energy values: Kinetic %.2E Gravity %.2E" % (kinetic, potential)
+        phdLogger.info(message)
+\end{lstlisting}
+
+
+
+
 \subsubsection{HDF5}
 
 \subsection{Outputters and Finishers}
