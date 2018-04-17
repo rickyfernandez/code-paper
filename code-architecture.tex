@@ -245,23 +245,23 @@ time are updated and the system is ready for the next computation.
 
 \subsection{Hydro Class}
 \subsubsection{Reconstruction}
-Once the mesh is created, cell center values need to be reconstructed at cell center faces
+Once the mesh is created, cell center values need to be reconstructed to cell center faces
 in order to calculate the fluxes. The interface to implement a reconstruction
-scheme is dictated by \lstinline{ReconstructionBase} class. The api of the base class is
-listed below:
+scheme is dictated by the \lstinline{ReconstructionBase} class which has the following api:
 \begin{itemize}
-	\item \lstinline{compute_gradients()} calculate the gradients of the fields for each particles.
+	\item \lstinline{compute_gradients()} calculate the gradients of the fields for each particle.
     \item \lstinline{add_spatial()} add gradients to expansion.
     \item \lstinline{add_temporal()} add time derivatives to expansion.
 \end{itemize}
-The api embodies a general deconstruction of eq. which is taylor expansion from the
-center cell values to face values. In our case we have deconstructed the equation into
-three calls. First, is the calculation of the spatial derivatives (gradients). In this
-call the derivatives are computed which could be through geometrical cite, least square cite or any other
-method. With the derivatives calculated center values are then spatially and temporal
-extrapolated. The reason we break the extrapolation into spatial and temporal is to
-allow the user complete control. As for example some schemes are predictor and corrector
-schemes, functionality is needed .
+The api embodies a general deconstruction of eq. into three building blocks. First, is the
+calculation of the spatial derivatives (i.e gradients) by \lstinline{compute_gradients()}.
+In this call the derivatives are computed through a specified scheme. For example, the gradients can be 
+calculated by the least square approach \citep{Pakmor2016} or through geometrical properties 
+\citep{Springel2010}. With the derivatives calculated cell center values can then be extrapolated spatially
+(\lstinline{add_spatial()}) or temporally (\lstinline{add_temporal()}). In this manner the
+user has complete control of the terms in the expansion.This is important to note, as many integrator 
+schemes make use of the reconstruction several times in Runge-Kutta solver variants (i.e \cite{Pakmor2016} 
+and \cite{Duffell2011}).
 
 \subsubsection{Riemann Solver}
 The fluxes at each face of the mesh is constructed by the \lstinline{RiemannBase} class.
