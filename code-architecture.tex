@@ -61,6 +61,7 @@ the actual computation. Further if a method depends another class it has to be w
 the confines of the api. Therefore, our algorithms are designed in confirm to an api
 and any development of a future class will have to abide by it.
 
+\subsection{Serialization of classes and parameters}
 \subsection{Particle Data Structures}
 \subsubsection{Carray}
 In choosing the underlying data structure several considerations where taken. First the
@@ -164,12 +165,40 @@ Log information is currently printed to the terminal and saved to a log file. Th
 allows the ability to pick how much information should be printed and saved. In parallel runs, the 
 root processor takes responsibility for writing to the log file and displaying to terminal.
 
-\subsubsection{Serialization of classes and parameters}
+
 
 \subsection{Mesh Class}
+The mesh class \lstinline{Mesh} is responsible for all geometric computations relating
+to the particle cell. For example the class computes the cells volume and center of mass.
+The class works in tandem with the \lstinline{DomainManager} to build the mesh.
+Once constructed the mesh class register geometric fields that will be needed during
+the simulation.
+
 \subsubsection{Tessellation}
-\subsubsection{Grid Motion}
+The tessellation algorithm section is performed through \lstinline{build_geometry()}.
+It works withe the \lstinline{DomainManger} building the mesh in rounds. In the first
+round all local particles are added to the tessellation, at this point there are no
+ghost particles. Particles that have infinite volume or that have radius that intersect
+with other processor boundaries, in parallel, or the simulation domain are flagged. Then the 
+\lstinline{DomainManager} is called creating the necessary ghost particles. The mesh is
+updated with the ghost particles and process is repeated. This process continues until
+all particles have a finite volume and all neighbors have been accounted for.
+
+With the tessellation complete, cell values are computed. This entail calculating
+cell neighbors, volumes, center of masses, face area vectors etc. The information
+regrading to the faces of each cell is stored an attribute \lstinline{faces}. In this
+data structure, each column is a face. For each face entry there exists references to
+the two particles that define the face. For each particle the neighbor information
+is reference through faces. In this way, when a particle wants all of its neighbors
+it first request all the faces relating to its cells. Then for each face, the neighboring
+particle can be retrieved.
+
 \subsubsection{Flux Update}
+Once the flux have calculated, it is the responsibility of the mesh to use the fluxes
+to update the values of the cells. This was chosen as the equation of update involves
+geometric terms. Further this allows a framework to allow different structured meshes
+(spherical and cylindrical). Since all geometric quantities are regulated to the mesh
+
 
 \subsection{Integrator Class}
 \label{sec.integrator}
