@@ -1,9 +1,14 @@
 \section{Code Design}
-
-In the following section we go over the design and rationale of our choices
-for the development of the code. In several instances we will describe 
-methods that we believe are the most important and give examples of 
-implementation and modification.
+In the following sections to come, we will go over the design and rationale of the choices
+we made during the development of the code. In several instances, we will describe 
+classes and methods that we believe will be beneficial for the reader. Moreover, we will
+give examples of code snippets for the reader can become more
+comfortable with the syntax of the code. As a road map, Figure \ref{fig.phd_design} shows a high level view of the code. As it can be seen, the code consists of six core components:
+simulation, integration, temporal control, geometric computation, core fluid
+computation and optional fluid computation. This categorization, has lead the code
+to be flexible enough to allow modifications without heavily disrupting other
+portions of the code. Furthermore, each component may be made up of several more
+subcomponents. In the next sections we will go into detail of each component and subcomponent.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/phd_chart.eps}
@@ -13,6 +18,9 @@ implementation and modification.
 \end{figure}
 
 \subsection{Overall Class Design Considerations}
+Before we go into specific details of the code, we outline some of the over arching
+traits that are common throughout the code.
+
 \subsubsection{Field Registration}
 Form our past experience, we have found one of the challenging problems in maintaining codes
 is that of adding new fields. There are many reasons why to add new fields, for example,
