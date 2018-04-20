@@ -1,4 +1,5 @@
 \section{Code Design}
+
 In the following section we go over the design and rationale of our choices
 for the development of the code. In several instances we will describe 
 methods that we believe are the most important and give examples of 
@@ -63,7 +64,7 @@ and any development of a future class will have to abide by it.
 
 \subsection{Serialization of classes and parameters}
 \subsection{Particle Data Structures}
-\subsubsection{Carray}
+\subsubsection{Carray Class}
 In choosing the underlying data structure several considerations where taken. First the
 data had to be accessible in python and in C. Second the data structure had to
 accommodate several data types. For this reason we choose a data structure that mimics
@@ -101,7 +102,7 @@ that the length of the Carray can be found either by the len function or the len
 attribute. The Carray then has a value appended to it followed by resizing the Carray to a length
 of 5. Finally, the get npy array is called returning a numpy array which allows the use of slicing.
 
-\subsubsection{CarrayContainer}
+\subsubsection{CarrayContainer Class}
 \label{sec.carraycontainer}
 The use of Carrays allow to easily manipulate arrays of certain type of data. However, there are
 many circumstances for the need of a collection of Carrays. For example the x, y, and z position
@@ -166,39 +167,169 @@ allows the ability to pick how much information should be printed and saved. In 
 root processor takes responsibility for writing to the log file and displaying to terminal.
 
 
+% Temporal Control and I/O
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Temporal Control and I/O}
+\subsubsection{Reader/Writer Class}
+To allow the code to output different data formats, we have implemented 
+a \lstinline{ReaderWriterBase} class. This gives the freedom to the user
+in what format should the particle information be saved in. Likewise, this
+allows that data to be read in any format. The standard api of the 
+\lstinline{ReaderWriterBase} is listed below:
+\begin{itemize}
+	\item \lstinline{read()} read data in a specific format.
+    \item \lstinline{write()} write data in a specific format.
+\end{itemize}
+With such a framework, new formats can be easily implemented. Further, this
+allows a simple way to create a front end to read data from another simulation.
 
-\subsection{Mesh Class}
-The mesh class \lstinline{Mesh} is responsible for all geometric computations relating
-to the particle cell. For example the class computes the cells volume and center of mass.
-The class works in tandem with the \lstinline{DomainManager} to build the mesh.
-Once constructed the mesh class register geometric fields that will be needed during
-the simulation.
+Although this framework facilitates the option to save data in different formats,
+we believe this framework has more general capabilities. Since the \lstinline{ReaderWriterBase}
+has accessed to the integrator, any component of the simulation and be considered for
+output. Moreover, analysis can be performed ouputing information that techniqua
 
-\subsubsection{Tessellation}
-The tessellation algorithm section is performed through \lstinline{build_geometry()}.
-It works withe the \lstinline{DomainManger} building the mesh in rounds. In the first
-round all local particles are added to the tessellation, at this point there are no
-ghost particles. Particles that have infinite volume or that have radius that intersect
-with other processor boundaries, in parallel, or the simulation domain are flagged. Then the 
-\lstinline{DomainManager} is called creating the necessary ghost particles. The mesh is
-updated with the ghost particles and process is repeated. This process continues until
-all particles have a finite volume and all neighbors have been accounted for.
+\begin{lstlisting}
+...
+class EnergyTracker(ReaderWriterBase):
+	def write(self, base_name, output_directory, integrator):
+   		particles = integrator.particles
+        
+   		# compute square velocity
+        v2 = particles["velocity-x"]**2 + particles["velocity-y"]**2
+        if len(particles.carray_named_groups["position"]) == 3:
+        	v2 += particles["velocity-z"]**2
+            
+        # calculate kinetic and potential energy of system    
+        kinetic = (0.4*particles["mass"]*v2).sum()
+        potential = 0.5*(particles["mass"]*particles["potential"]).sum()
+        
+        message = "Energy values: Kinetic %.2E Gravity %.2E" % (kinetic, potential)
+        phdLogger.info(message)
+\end{lstlisting}
 
-With the tessellation complete, cell values are computed. This entail calculating
-cell neighbors, volumes, center of masses, face area vectors etc. The information
-regrading to the faces of each cell is stored an attribute \lstinline{faces}. In this
-data structure, each column is a face. For each face entry there exists references to
-the two particles that define the face. For each particle the neighbor information
-is reference through faces. In this way, when a particle wants all of its neighbors
-it first request all the faces relating to its cells. Then for each face, the neighboring
-particle can be retrieved.
+\subsubsection{Outputer and Finisher Class}
+\label{sec.outputters}
 
-\subsubsection{Flux Update}
-Once the flux have calculated, it is the responsibility of the mesh to use the fluxes
-to update the values of the cells. This was chosen as the equation of update involves
-geometric terms. Further this allows a framework to allow different structured meshes
-(spherical and cylindrical). Since all geometric quantities are regulated to the mesh
+The code has been desinged to handle arbitrary signals for outputing data
+and completion of the simulation. This has been achieved by introducing the
+\lstinline{SimulationOutputerBase} class for output and
+\lstinline{SimulationFinisherBase} class for completion.
 
+At the end of every
+time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
+of the simulation) a call to all registered outputers and finishers is
+performed. In each call the class has complete control of the integrator. Thus
+the classes can inspect the time, time step, iteration, particle data, flux data,
+reconstruciton data etc. This allows for a general conditions instead of hard
+coded ones. Further this opens the door to allow conditions
+
+the options are plentiful and we hope to make large of use in the next
+revision of the code.
+
+In the case of \lstinline{SimulationOutputerBase} a writer is registered with it.
+
+In this section we show, some what trivial but highlights the main points, an example of
+how to create an outputter and finisher. For our example, we use the sedov problem from 
+section cite. We are interested to output all time steps once the shock has reached
+a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
+use the analytical solution to extrapolate when such values would occur. However that
+assumes the shock track exactly. In our scenario we let the simulation do the work
+for us.
+
+First we begin by defining an outputter with the objective to start outputing
+all data once the density value of $\rho=2$ has been reached (see code excerpt). This
+is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
+\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
+\lstinline{check_for_output}, we check is the the outputter is the main loop state
+and if the max density is greater than \lstinline{density_min}. Moreover, there
+is no need to change the time step, therefore, it is left unaltered.
+
+
+\begin{lstlisting}
+...
+class OutputSedovDensity(SimulationOutputerBase):
+    def __init__(self, density_min, base_name="density_output",
+                 counter=0, pad=4, **kwargs):
+        super(OutputSedovDensity, self).__init__(base_name, counter, pad, **kwargs)
+        self.density_min = density_min 
+
+    def check_for_output(self, simulation):
+        """Return True to signal the simulation has reached
+        sedov interval to ouput data."""
+        integrator = simulation.integrator
+        state = simulation._state == SimulationTAGS.MAIN_LOOP
+        output_sedov = integrator.particles["density"].max() >= self.density_min:
+
+        if state and output_sedov:
+            return True
+        return False
+
+    def modify_timestep(self, simulation):
+        """Return consistent time step."""
+        # not modifying
+        return simulation.integrator.dt
+
+\end{lstlisting}
+At this point our data will be outputted until the simulation is finished. To
+create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
+we create a new class \lstinline{SedovDensityFinisher}. This class inherits
+\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
+method. In our case we need only to compare our max density values with
+$\rho_{\mathrm{max}}$.
+\begin{lstlisting}
+...
+class SedovDensityFinisher(SimulationFinisherBase):
+    def __init__(self, density_max, **kwargs):
+        self.density_max = density_max
+
+    def finished(self, simulation):
+        """Return True to signal the simulation is finished
+        if reached max iteration number.
+        """
+        if simulation.integrator.particles["density"].max() >= self.density_max:
+            return True
+        else:
+            return False
+
+\end{lstlisting}
+
+Although are example was simplistic, we hope that it shows the flexibility and power
+what the outputters and finishers may achieve.  
+
+\subsubsection{Logging}
+\label{sec.logging}
+Event logging during a simulation is performed through the python 
+\texttt{logging}\footnote{\url{https://docs.python.org/2/library/logging.html}} library. The library has 
+many capabilities but for our intentions we have focused on displaying and storing messages related to the
+state of the simulation. To that end, we use one logger called \lstinline{phdLogger}. This 
+logger can be imported to any file and used to log any information of interest.
+
+For our purposes, the logger has four levels of logging. They are listed below:
+\begin{itemize}
+	\item debug: detailed information or diagnosing.
+    \item info: working as expected.
+    \item success: a successful completion. 
+    \item warning: unexpected result that may lead to future problem.
+\end{itemize}
+The log levels have been listed in order of inclusion. Meaning if ``warning'' is chosen, then all messages
+types are logged. However if ``info'' is chosen only messages of type ``debug" and ``info'' or logged.
+At runtime the log level and file to store the messages can be specified through the 
+\lstinline{Simulation} class.
+
+As an example we show a simple usage of the logger below:
+\begin{lstlisting}
+import logging
+phdLogger = logging.getLogger("phd")
+...
+phdLogger.info("Starting kinetic energy calculation")
+kinetic_energy = particles["mass"]*(particles["velocity-x"]**2 + particles["velocity-y"]**2)
+
+if kinetic_energy.sum() > 0:
+	phdLogger.debug("Kinetic energy greater than zero")
+\end{lstlisting}
+In this example we import the logger and print out a messages related to the calculation of the
+kinetic energy. It is important to note that this example is true if run in serial or parallel. The logger
+has been modified such that logging information and storage is always handled by the root processor.
 
 \subsection{Integrator Class}
 \label{sec.integrator}
@@ -272,7 +403,149 @@ to update the fields. Sprinkled in are calls to source terms, if any.
 Finally the ghost particles, iteration counter and
 time are updated and the system is ready for the next computation.
 
-\subsection{Hydro Class}
+
+% Geometric Computation
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Geometric Computation}
+\subsubsection{Mesh Class}
+The mesh class \lstinline{Mesh} is responsible for all geometric computations relating
+to the particle cell. For example the class computes the cells volume and center of mass.
+The class works in tandem with the \lstinline{DomainManager} to build the mesh.
+Once constructed the mesh class register geometric fields that will be needed during
+the simulation.
+
+The tessellation algorithm section is performed through \lstinline{build_geometry()}.
+It works withe the \lstinline{DomainManger} building the mesh in rounds. In the first
+round all local particles are added to the tessellation, at this point there are no
+ghost particles. Particles that have infinite volume or that have radius that intersect
+with other processor boundaries, in parallel, or the simulation domain are flagged. Then the 
+\lstinline{DomainManager} is called creating the necessary ghost particles. The mesh is
+updated with the ghost particles and process is repeated. This process continues until
+all particles have a finite volume and all neighbors have been accounted for.
+
+With the tessellation complete, cell values are computed. This entail calculating
+cell neighbors, volumes, center of masses, face area vectors etc. The information
+regrading to the faces of each cell is stored an attribute \lstinline{faces}. In this
+data structure, each column is a face. For each face entry there exists references to
+the two particles that define the face. For each particle the neighbor information
+is reference through faces. In this way, when a particle wants all of its neighbors
+it first request all the faces relating to its cells. Then for each face, the neighboring
+particle can be retrieved.
+
+Once the flux have calculated, it is the responsibility of the mesh to use the fluxes
+to update the values of the cells. This was chosen as the equation of update involves
+geometric terms. Further this allows a framework to allow different structured meshes
+(spherical and cylindrical). Since all geometric quantities are regulated to the mesh
+
+\subsubsection{Domain Manager}
+Our \lstinline{DomainManager} class is designed to handle information associated with
+the domains of the simulation. We consider a domain to be the spatial region where the computation
+is performed. In serial, this is the entire spatial region of the simulation.
+In parallel, this is the spatial region associated with each processor. 
+In this way, for the most part, our domains are isolated computations and when
+data is needed from neighboring domains they are requested through the \lstinline{DomainManager}.
+
+The \lstinline{DomainManager} was initially designed to contain the limits and dimension of
+the problem. As development continued it became natural that the \lstinline{DomainManager} would
+encompass the boundary condition, ghost particle information, and exchange of data across boundaries.
+At its current state, the \lstinline{DomainManager} only supports communication of ghost particle data
+and does not support the general forms of data communication
+(i.e reduction, gathers, broadcast etc). We plan in the next revision to implement an api that
+performs these task. In doing so, we would remove strict dependence on MPI functions and only
+work through the \lstinline{DomainManager}.
+
+%\subsubsection{Internal Boundary Particle Sharing}
+In parallel, particles are decomposed into a disjoint set of spatial domains
+with each domain mapped to a unique processor. The construction
+of the global Voronoi mesh is then delegated to the construction of a disjoint set
+of local Voronoi meshes. For the set of local constructions to be consistent
+with the global mesh, the appropriate boundary particles must be 
+communicated across domains.
+
+Interior ghost particles, are particles formed from neighboring domains and are used to
+connect local meshes together. Their creation is handled by the \lstinline{DomainManager}
+through the \lstinline{create_interior_ghost_particles()} method. This method
+creates interior ghost particles by inspecting the search radius of
+each local particle. If a particles search radius overlaps with a processor
+boundary then it is flagged and a corresponding ghost particle is created and exported to that processor.
+The search method is made possible by the \lstinline{DomainManager}s ability to query
+all domains through geometrical searches. Care is taken such that no duplicates are created through the 
+whole process. After each particle is inspected, ghost particles are communicated and then the
+mesh is allowed to updated itself. This procedure is repeated until particles are no longer flagged.
+
+%\subsubsection{Particle Motion}
+After a flux update, the particles are allowed to move. Depending on initial particle position and
+velocity a particle may leave its processor or the simulation domain. In either case, the 
+\lstinline{DomainManager} is responsible for the destintation of the particle.
+
+%\subsubsection{Data Communication}
+After the creation of ghost particles, in parallel simulations, supplemental data has to be communicated. 
+For example, the center of mass may not be computed locally because its neighbors may not exist locally.
+This is because our implementation of ghost particles only to guarantees all neighbors of local
+particles. Certainly we could of opted to import all neighbors of ghost particles but instead we have 
+decided to communicate that information instead. Thus, the \lstinline{DomianManager} records all information
+associated with a ghost particle. This allows ghost particles to be easily updated with any data. These
+operations are implemented through \lstinline{update_ghost_fields()} and 
+\lstinline{update_ghost_gradients()}
+
+
+When a particle leaves the simulation domain in serial or parallel the \lstinline{DomainManager}
+flags that particle and then applies the boundary condition. For reflective boundaries the particle is not
+allowed to leave and for periodic boundaries the particle is wrapped back into the domain. If the simulation
+is in parallel the \lstinline{DomainManager} exports the particle to the correct processor and removes
+it from the local particle container. If a particle leaves its processor patch the \lstinline{DomainManager}
+will query all domains and find the correct domain for export.
+
+\subsubsection{Boundary Condition}
+Similar to interior ghost particles, exterior ghost particles are used to
+complete local meshes. However, exterior ghost particles are not from neighboring
+domains but instead are created through a boundary condition. To allow for different
+boundary condition we have created \lstinline{BoundaryConditionBase} that interacts
+with \lstinline{DomainManager}. The api is listed below:
+\begin{itemize}
+	\item \lstinline{create_ghost_particle()} create ghost particle from flagged particle.
+    \item \lstinline{migrate_particles()} for particles that have left the domain, apply
+    appropriate boundary condition.
+    \item \lstinline{update_gradients()} apply boundary condition to ghost particle gradients.
+    \item \lstinline{update_fields()} apply boundary condition to ghost particle fields.
+\end{itemize}
+Through this api, any boundary condition may be implemented. The boundary condition does not have
+to be uniform in each dimension. Mixed boundaries or even problem specific boundaries are allowed
+in this framework. Furthermore, the api allows the boundary
+condition to modify particle motion and field data. In this way, we have extracted all boundary
+information from the \lstinline{DomainManager}.
+
+Currently, we have two implementations of boundary conditions, reflective and periodic.
+In the reflective case, the flagged particle is mirrored across each boundary edge of the
+simulation. If an intersection occurs, a ghost particle is created with its normal velocity flipped.
+In the serial case, the ghost particle is added directly to the particle data container. In parallel, the 
+ghost particle is then further inspected for intersection of neighboring processors. The ghost particle
+is then placed in a communication to be exported to each flagged processor. For the periodic case
+the procedure is similar, with the exception that particle is periodically shifted
+instead of being mirrored.
+
+\subsubsection{Load Balance}
+
+
+% Core Fluid Computation
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Core Fluid Computation}
+\subsubsection{Riemann Solver}
+The fluxes at each face of the mesh is constructed by the \lstinline{RiemannBase} class.
+As a common thread with all of our computation classes, the base class defines the api.
+The api is straight forward with only two methods to define:
+\begin{itemize}
+	\item \lstinline{riemann_solver()} solve for fluxes at each interface.
+    \item \lstinline{compute_time_step()} compute hydro time step.
+\end{itemize}
+The \lstinline{compute_time_step()} is optional since the base class has a default
+CFL constrained time step calculation. However the option is there if a particular 
+solver implementation needs to modify it. Furthermore, the base class defines a 
+method for the fluxes to be transformed back into the lab frame. This allows,
+for the most part, to implement a solver without worrying about the details of
+rotating and boosting back into the lab frame. As of time of writing, we have
+implemented the HLL, HLLC, and Exact Riemann solvers.
+
 \subsubsection{Reconstruction}
 Once the mesh is created, cell center values need to be reconstructed to cell center faces
 in order to calculate the fluxes. The interface to implement a reconstruction
@@ -292,23 +565,21 @@ user has complete control of the terms in the expansion.This is important to not
 schemes make use of the reconstruction several times in Runge-Kutta solver variants (i.e \cite{Pakmor2016} 
 and \cite{Duffell2011}).
 
-\subsubsection{Riemann Solver}
-The fluxes at each face of the mesh is constructed by the \lstinline{RiemannBase} class.
-As a common thread with all of our computation classes, the base class defines the api.
-The api is straight forward with only two methods to define:
+\subsection{Equation of State}
+Our equation state is implemented through \lstinline{EquationStateBase}. We
+decided 
 \begin{itemize}
-	\item \lstinline{riemann_solver()} solve for fluxes at each interface.
-    \item \lstinline{compute_time_step()} compute hydro time step.
+    \item \lstinline{conservative_from_primitive()}: modify primitive variables.
+    \item \lstinline{primitive_from_conservative()}: modify conservative variables.
+    \item \lstinline{sound_speed()}: modify flux terms.
+    \item \lstinline{get_gamma()}: calculate source components.
 \end{itemize}
-The \lstinline{compute_time_step()} is optional since the base class has a default
-CFL constrained time step calculation. However the option is there if a particular 
-solver implementation needs to modify it. Furthermore, the base class defines a 
-method for the fluxes to be transformed back into the lab frame. This allows,
-for the most part, to implement a solver without worrying about the details of
-rotating and boosting back into the lab frame. As of time of writing, we have
-implemented the HLL, HLLC, and Exact Riemann solvers.
 
-\subsection{General Source Terms}
+
+% Optional Fluid Computation
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\subsection{Optional Fluid Computation}
+\subsubsection{General Source Terms}
 The inclusion of source terms has been implemented through a general source
 \lstinline{SourceTermBase} with methods listed below:
 \begin{itemize}
@@ -381,270 +652,3 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
                     # update energy 
                     e.data[i] += 0.5*dt*mv[k][i]*a[k][i]
 \end{lstlisting}
-
-\subsection{Readers/Writers}
-To allow the code to output different data formats, we have implemented 
-a \lstinline{ReaderWriterBase} class. This gives the freedom to the user
-in what format should the particle information be saved in. Likewise, this
-allows that data to be read in any format. The standard api of the 
-\lstinline{ReaderWriterBase} is listed below:
-\begin{itemize}
-	\item \lstinline{read()} read data in a specific format.
-    \item \lstinline{write()} write data in a specific format.
-\end{itemize}
-With such a framework, new formats can be easily implemented. Further, this
-allows a simple way to create a front end to read data from another simulation.
-
-Although this framework facilitates the option to save data in different formats,
-we believe this framework has more general capabilities. Since the \lstinline{ReaderWriterBase}
-has accessed to the integrator, any component of the simulation and be considered for
-output. Moreover, analysis can be performed ouputing information that techniqua
-
-\begin{lstlisting}
-...
-class EnergyTracker(ReaderWriterBase):
-	def write(self, base_name, output_directory, integrator):
-   		particles = integrator.particles
-        
-   		# compute square velocity
-        v2 = particles["velocity-x"]**2 + particles["velocity-y"]**2
-        if len(particles.carray_named_groups["position"]) == 3:
-        	v2 += particles["velocity-z"]**2
-            
-        # calculate kinetic and potential energy of system    
-        kinetic = (0.4*particles["mass"]*v2).sum()
-        potential = 0.5*(particles["mass"]*particles["potential"]).sum()
-        
-        message = "Energy values: Kinetic %.2E Gravity %.2E" % (kinetic, potential)
-        phdLogger.info(message)
-\end{lstlisting}
-
-
-
-
-\subsubsection{HDF5}
-
-\subsection{Outputters and Finishers}
-\label{sec.outputters}
-
-\subsubsection{Design API}
-The code has been desinged to handle arbitrary signals for outputing data
-and completion of the simulation. This has been achieved by introducing the
-\lstinline{SimulationOutputerBase} class for output and
-\lstinline{SimulationFinisherBase} class for completion.
-
-At the end of every
-time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
-of the simulation) a call to all registered outputers and finishers is
-performed. In each call the class has complete control of the integrator. Thus
-the classes can inspect the time, time step, iteration, particle data, flux data,
-reconstruciton data etc. This allows for a general conditions instead of hard
-coded ones. Further this opens the door to allow conditions
-
-the options are plentiful and we hope to make large of use in the next
-revision of the code.
-
-In the case of \lstinline{SimulationOutputerBase} a writer is registered with it.
-
-\subsubsection{Examples}
-In this section we show, some what trivial but highlights the main points, an example of
-how to create an outputter and finisher. For our example, we use the sedov problem from 
-section cite. We are interested to output all time steps once the shock has reached
-a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
-use the analytical solution to extrapolate when such values would occur. However that
-assumes the shock track exactly. In our scenario we let the simulation do the work
-for us.
-
-First we begin by defining an outputter with the objective to start outputing
-all data once the density value of $\rho=2$ has been reached (see code excerpt). This
-is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
-\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
-\lstinline{check_for_output}, we check is the the outputter is the main loop state
-and if the max density is greater than \lstinline{density_min}. Moreover, there
-is no need to change the time step, therefore, it is left unaltered.
-
-
-\begin{lstlisting}
-...
-class OutputSedovDensity(SimulationOutputerBase):
-    def __init__(self, density_min, base_name="density_output",
-                 counter=0, pad=4, **kwargs):
-        super(OutputSedovDensity, self).__init__(base_name, counter, pad, **kwargs)
-        self.density_min = density_min 
-
-    def check_for_output(self, simulation):
-        """Return True to signal the simulation has reached
-        sedov interval to ouput data."""
-        integrator = simulation.integrator
-        state = simulation._state == SimulationTAGS.MAIN_LOOP
-        output_sedov = integrator.particles["density"].max() >= self.density_min:
-
-        if state and output_sedov:
-            return True
-        return False
-
-    def modify_timestep(self, simulation):
-        """Return consistent time step."""
-        # not modifying
-        return simulation.integrator.dt
-
-\end{lstlisting}
-At this point our data will be outputted until the simulation is finished. To
-create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
-we create a new class \lstinline{SedovDensityFinisher}. This class inherits
-\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
-method. In our case we need only to compare our max density values with
-$\rho_{\mathrm{max}}$.
-\begin{lstlisting}
-...
-class SedovDensityFinisher(SimulationFinisherBase):
-    def __init__(self, density_max, **kwargs):
-        self.density_max = density_max
-
-    def finished(self, simulation):
-        """Return True to signal the simulation is finished
-        if reached max iteration number.
-        """
-        if simulation.integrator.particles["density"].max() >= self.density_max:
-            return True
-        else:
-            return False
-
-\end{lstlisting}
-
-Although are example was simplistic, we hope that it shows the flexibility and power
-what the outputters and finishers may achieve.  
-
-\subsection{Load Balance}
-
-\subsection{Equation of State}
-Our equation state is implemented through \lstinline{EquationStateBase}. We
-decided 
-\begin{itemize}
-    \item \lstinline{conservative_from_primitive()}: modify primitive variables.
-    \item \lstinline{primitive_from_conservative()}: modify conservative variables.
-    \item \lstinline{sound_speed()}: modify flux terms.
-    \item \lstinline{get_gamma()}: calculate source components.
-\end{itemize}
-
-
-\subsection{Domain Manager}
-Our \lstinline{DomainManager} class is designed to handle information associated with
-the domains of the simulation. We consider a domain to be the spatial region where the computation
-is performed. In serial, this is the entire spatial region of the simulation.
-In parallel, this is the spatial region associated with each processor. 
-In this way, for the most part, our domains are isolated computations and when
-data is needed from neighboring domains they are requested through the \lstinline{DomainManager}.
-
-The \lstinline{DomainManager} was initially designed to contain the limits and dimension of
-the problem. As development continued it became natural that the \lstinline{DomainManager} would
-encompass the boundary condition, ghost particle information, and exchange of data across boundaries.
-At its current state, the \lstinline{DomainManager} only supports communication of ghost particle data
-and does not support the general forms of data communication
-(i.e reduction, gathers, broadcast etc). We plan in the next revision to implement an api that
-performs these task. In doing so, we would remove strict dependence on MPI functions and only
-work through the \lstinline{DomainManager}.
-
-\subsubsection{Internal Boundary Particle Sharing}
-In parallel, particles are decomposed into a disjoint set of spatial domains
-with each domain mapped to a unique processor. The construction
-of the global Voronoi mesh is then delegated to the construction of a disjoint set
-of local Voronoi meshes. For the set of local constructions to be consistent
-with the global mesh, the appropriate boundary particles must be 
-communicated across domains.
-
-Interior ghost particles, are particles formed from neighboring domains and are used to
-connect local meshes together. Their creation is handled by the \lstinline{DomainManager}
-through the \lstinline{create_interior_ghost_particles()} method. This method
-creates interior ghost particles by inspecting the search radius of
-each local particle. If a particles search radius overlaps with a processor
-boundary then it is flagged and a corresponding ghost particle is created and exported to that processor.
-The search method is made possible by the \lstinline{DomainManager}s ability to query
-all domains through geometrical searches. Care is taken such that no duplicates are created through the 
-whole process. After each particle is inspected, ghost particles are communicated and then the
-mesh is allowed to updated itself. This procedure is repeated until particles are no longer flagged.
-
-\subsubsection{Boundary Condition}
-Similar to interior ghost particles, exterior ghost particles are used to
-complete local meshes. However, exterior ghost particles are not from neighboring
-domains but instead are created through a boundary condition. To allow for different
-boundary condition we have created \lstinline{BoundaryConditionBase} that interacts
-with \lstinline{DomainManager}. The api is listed below:
-\begin{itemize}
-	\item \lstinline{create_ghost_particle()} create ghost particle from flagged particle.
-    \item \lstinline{migrate_particles()} for particles that have left the domain, apply
-    appropriate boundary condition.
-    \item \lstinline{update_gradients()} apply boundary condition to ghost particle gradients.
-    \item \lstinline{update_fields()} apply boundary condition to ghost particle fields.
-\end{itemize}
-Through this api, any boundary condition may be implemented. The boundary condition does not have
-to be uniform in each dimension. Mixed boundaries or even problem specific boundaries are allowed
-in this framework. Furthermore, the api allows the boundary
-condition to modify particle motion and field data. In this way, we have extracted all boundary
-information from the \lstinline{DomainManager}.
-
-Currently, we have two implementations of boundary conditions, reflective and periodic.
-In the reflective case, the flagged particle is mirrored across each boundary edge of the
-simulation. If an intersection occurs, a ghost particle is created with its normal velocity flipped.
-In the serial case, the ghost particle is added directly to the particle data container. In parallel, the 
-ghost particle is then further inspected for intersection of neighboring processors. The ghost particle
-is then placed in a communication to be exported to each flagged processor. For the periodic case
-the procedure is similar, with the exception that particle is periodically shifted
-instead of being mirrored.
-
-\subsubsection{Data Communication}
-After the creation of ghost particles, in parallel simulations, supplemental data has to be communicated. 
-For example, the center of mass may not be computed locally because its neighbors may not exist locally.
-This is because our implementation of ghost particles only to guarantees all neighbors of local
-particles. Certainly we could of opted to import all neighbors of ghost particles but instead we have 
-decided to communicate that information instead. Thus, the \lstinline{DomianManager} records all information
-associated with a ghost particle. This allows ghost particles to be easily updated with any data. These
-operations are implemented through \lstinline{update_ghost_fields()} and 
-\lstinline{update_ghost_gradients()}
-
-\subsubsection{Particle Motion}
-After a flux update, the particles are allowed to move. Depending on initial particle position and
-velocity a particle may leave its processor or the simulation domain. In either case, the 
-\lstinline{DomainManager} is responsible for the destintation of the particle.
-
-When a particle leaves the simulation domain in serial or parallel the \lstinline{DomainManager}
-flags that particle and then applies the boundary condition. For reflective boundaries the particle is not
-allowed to leave and for periodic boundaries the particle is wrapped back into the domain. If the simulation
-is in parallel the \lstinline{DomainManager} exports the particle to the correct processor and removes
-it from the local particle container. If a particle leaves its processor patch the \lstinline{DomainManager}
-will query all domains and find the correct domain for export.
-
-\subsection{Logging}
-\label{sec.logging}
-Event logging during a simulation is performed through the python 
-\texttt{logging}\footnote{\url{https://docs.python.org/2/library/logging.html}} library. The library has 
-many capabilities but for our intentions we have focused on displaying and storing messages related to the
-state of the simulation. To that end, we use one logger called \lstinline{phdLogger}. This 
-logger can be imported to any file and used to log any information of interest.
-
-For our purposes, the logger has four levels of logging. They are listed below:
-\begin{itemize}
-	\item debug: detailed information or diagnosing.
-    \item info: working as expected.
-    \item success: a successful completion. 
-    \item warning: unexpected result that may lead to future problem.
-\end{itemize}
-The log levels have been listed in order of inclusion. Meaning if ``warning'' is chosen, then all messages
-types are logged. However if ``info'' is chosen only messages of type ``debug" and ``info'' or logged.
-At runtime the log level and file to store the messages can be specified through the 
-\lstinline{Simulation} class.
-
-As an example we show a simple usage of the logger below:
-\begin{lstlisting}
-import logging
-phdLogger = logging.getLogger("phd")
-...
-phdLogger.info("Starting kinetic energy calculation")
-kinetic_energy = particles["mass"]*(particles["velocity-x"]**2 + particles["velocity-y"]**2)
-
-if kinetic_energy.sum() > 0:
-	phdLogger.debug("Kinetic energy greater than zero")
-\end{lstlisting}
-In this example we import the logger and print out a messages related to the calculation of the
-kinetic energy. It is important to note that this example is true if run in serial or parallel. The logger
-has been modified such that logging information and storage is always handled by the root processor.
