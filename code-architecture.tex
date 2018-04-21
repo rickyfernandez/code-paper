@@ -1,18 +1,18 @@
 \section{Code Design}
 In the following sections to come, we will go over the design and rationale of the choices
 we made during the development of the code. In several instances, we will describe 
-classes and methods that we believe will be beneficial for the reader. Moreover, we will
-give examples of code snippets for the reader can become more
-comfortable with the syntax of the code. As a road map, Figure \ref{fig.phd_design} shows a high level view of the code. As it can be seen, the code consists of six core components:
+classes and methods that we believe are beneficial for the reader. Moreover, we will
+give examples of the code such that the reader can become more
+comfortable with the syntax. As a road map, Figure \ref{fig.phd_design} shows a high level view of the code. As it can be seen, the code consists of six core components:
 simulation, integration, temporal control, geometric computation, core fluid
 computation and optional fluid computation. This categorization, has lead the code
 to be flexible enough to allow modifications without heavily disrupting other
-portions of the code. Furthermore, each component may be made up of several more
+portions of the code. Furthermore, each component may composed of one or more
 subcomponents. In the next sections we will go into detail of each component and subcomponent.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/phd_chart.eps}
-        \caption{High level view of the the phd code. The code is compromised of six core components
+        \caption{High level view of the the \texttt{phd} code. The code is compromised of six core components
         that have been color coded. Each component is comprised of one or more classes. Each class
         represent a designated computation. Classes that have ``Base'' in their
         name can be easily modified through inheritance.}
@@ -22,16 +22,17 @@ subcomponents. In the next sections we will go into detail of each component and
 
 \subsection{Overall Class Design Considerations}
 Before we go into specific details of the code, we outline some of the over arching
-traits that are common throughout the code.
+traits that are common throughout the code. Specifically we will describe field registration,
+inheritance and data structures.
 
 \subsubsection{Field Registration}
-Form our past experience, we have found one of the challenging problems in maintaining codes
+Form our past experience, we have found out that one of the challenging problems in maintaining codes
 is that of adding new fields. There are many reasons why to add new fields, for example,
-an implementation of new physics (MHD, radiation, chemistry etc.) or adding a passive scalar
+an implementation of new physics module (MHD, radiation, chemistry etc.) or adding a passive scalar
 to track some portion of the fluid or modification of an existing algorithm that needs an auxiliary
 field which has not been stored. In any case, the addition of a new field can be challenging
 if the computation has been hard coded or the data structures, for example C structs, do not
-allow the addition of new fields. For this reason, we early on adopted a data structure
+allow for the addition of new fields. For this reason, we adopted a data structure
 that allows registration of fields (see Section~\ref{sec.carraycontainer}). In this manner
 fields can be easily added in the future.
 
@@ -45,73 +46,79 @@ For registration, the class usually inspects the particle data structure and cre
 necessary for the simulation. As an example, gravity registers the acceleration to the particles
 in the proper dimension. In this manner, we don't have unnecessary fields during the simulation
 (3D fields for 2D runs). Likewise, for addition of fields the class usually inspects the
-particle data and proceeds to register the proper fields internally. For example, gravity 
+particle data structure and proceeds to register the proper fields internally. For example, gravity 
 registers internally tree moment fields with the proper dimension.
 
 Since any number of fields can be registered, we have also allowed the ability to group
-fields by names. This has been extensively used to group collection of fields like
-primitive and conservative fields. This has allowed to easily retrieve collection of fields
-that are related and can be computed as a collection.
+fields by names. This has been extensively used to group collections of fields such as
+primitive and conservative fields. This has allowed to easily retrieve groups of fields
+that can computed as a whole.
 
 \subsubsection{Class Dependencies}
 Another source for future problems is when an algorithm depends on another. For example
 our gravity tree solver depends on our load balance implementation. If the algorithms
-are designed concurrently, then proper consideration is taken on how they will
-interact with one another. However, because of developments of new algorithms or experimentation, 
+are designed concurrently, then proper consideration is taken account on how they will
+interact with one another. However, because of the development of new algorithms or experimentations, 
 classes will eventually need to interact with others that where not originally designed for. In these
 situations common options are to re-factor the algorithm or even rewrite the algorithm itself. Both 
 methods can become cumbersome as the code develops and matures and changing one portion of the code 
-may create a cascade of other changes.
+may create a cascade of unwanted changes.
 
-In our case we decided to write our classes as encapsulated computations. This means we have
-tried to segregate computations as independent tasks and interactions between classes are 
-defined through their api. For the most part, each computation has a base class (i.e 
-\lstinline{ReconstructionBase}, \lstinline{RiemannBase}, \lstinline{InetgrateBase} etc.) that
+In our case we decided to write our classes as encapsulated computations (see Figure 
+\ref{fig.phd_design}). This means we have
+tried to segregate oure computations as independent tasks with interactions between each other
+defined through an Application Programming Interface (API). For the most part, each computation
+has a base class (i.e \lstinline{ReconstructionBase}, \lstinline{RiemannBase}, 
+\lstinline{InetgrateBase} etc.) that
 defines the methods it can perform. Moreover, the base class only serves as a template and
 returns a warning if accessed. Thus, each implementation inherits the base class and defines
-the actual computation. Further if a method depends another class it has to be written in
-the confines of the api. Therefore, our algorithms are designed in confirm to an api
-and any development of a future class will have to abide by it.
+the actual computation. Further, if a method depends another class it has to be written in
+such a way that it confines to the API. Therefore, our algorithms are designed to conform to an API
+and any future development will have to abide by it.
 
 \subsection{Serialization of classes and parameters}
 \subsection{Particle Data Structures}
 \subsubsection{Carray Class}
-In choosing the underlying data structure several considerations where taken. First the
-data had to be accessible in python and in C. Second the data structure had to
-accommodate several data types. For this reason we choose a data structure that mimics
-numpy arrays, in the sense that raw data is allocated in C and interface exist that
-manipulates the data in either C or python. With this approach a decision had to be
+In choosing the underlying data structure several considerations where taken into account. First, the
+data has to be accessible in \texttt{Python} and in \texttt{C}. Second, the data structure has to
+accommodate several different data types. For this reason we chose a data structure that mimics
+\texttt{Numpy} arrays, in the sense that the raw data is allocated in \texttt{C} and an interface exist that
+manipulates the data in either \texttt{C} or \texttt{Python}. With this approach a decision had to be
 made in the form of the raw data. Two choices where considered, either the data would
 be held in structs or arrays. The benefit of structs would allow subfields of the data
 be compact and allow easy implementations of passing and receiving data from other
-processors in parallel runs. Further numpy has an interface, that treats
-arrays of structs as record numpy arrays. However, this form was abandoned early on
+processors in parallel runs. Further \texttt{Numpy} has an interface, that treats
+arrays of structs as record \texttt{Numpy} arrays. However, this form was abandoned early on
 as the sub-fields would have to be hard coded and would not allow the creation of
 dynamic fields at run time. With this consideration, the raw data was chosen to be
-C arrays. 
+\texttt{C} arrays. 
 
-The exact implementation was taken from pysph code. The class is called Carray and
-can be initialized in Python or Cython. The interface closely resembles the list
-class of C++, in allowing indexing and memory management. Further, Carrays can return
-a numpy array, allowing the user to use all numpy functional (i.e. slicing and fancy indexing). 
-Below is a simple example using a Carray.
+The exact implementation heavily depends on the \lstinline{Carray} class from the \texttt{pysph} code 
+\citep{Ramachandran2016}. We have used this class as a starting point and have built functionality around
+it. This class can be initialized in \texttt{Python} or \texttt{Cython} and the
+interface closely resembles the list class of \texttt{C++} by allowing indexing and memory management. 
+Further, \lstinline{Carray}s can return a \texttt{Numpy} array, allowing the user to use all \texttt{Numpy} 
+functional (i.e. slicing and fancy indexing). Below is a simple example using a \lstinline{Carray}.
 \begin{lstlisting}
 import phd
 
+# allocate carray of size 10 doubles
+# and assign values
 x = phd.DoubleArray(10)
 for i range(len(x)):
 	x[i] = i**2
-    
-x.append(3.21)
-x.resize(5)
 
-xnp = x.get_npy_array()
-xnp[:] = np.arange(x.length)
+x.append(3.21) # append value at the end of carray
+x.resize(5)    # resize to 5 doubles
+
+xnp = x.get_npy_array()      # numpy array reference
+xnp[:] = np.arange(x.length) # numpy slice
 \end{lstlisting}
-In this example a Carray is created with 10 doubles, then assigned values by indexing. Notice
-that the length of the Carray can be found either by the len function or the length
-attribute. The Carray then has a value appended to it followed by resizing the Carray to a length
-of 5. Finally, the get npy array is called returning a numpy array which allows the use of slicing.
+In this example a \lstinline{Carray} is created with 10 doubles, then assigned values by indexing. Notice
+that the length of the \lstinline{Carray} can be found by using the \lstinline{len()} function or the 
+\lstinline{length} attribute. The \lstinline{Carray} then has a value appended to it followed by
+a resizing of length of 5. Finally, the get \lstinline{npy_array()} is called returning a \texttt{Numpy}
+array which allows the use of slicing. 
 
 \subsubsection{CarrayContainer Class}
 \label{sec.carraycontainer}
