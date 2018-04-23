@@ -77,6 +77,15 @@ such a way that it confines to the API. Therefore, our algorithms are designed t
 and any future development will have to abide by it.
 
 \subsection{Serialization of classes and parameters}
+For the onset, our classes only take \texttt{Python} core data types as arguments for initialization.
+This decision was motivated by our restarting and data storing scheme. Each class can be save as
+a string repersentation. Meaning that the name of the class and and all key word arguments are
+saved as key string dictionary. This information is enough to query create the class with its
+values at any time. Therefor during an output, each class in the simulation is generated its
+string information. Then all strings are append into a master list and a json file is created
+with the corresponding output. The output has a name reference to the json file. This is the information
+needed to restart a file.
+
 \subsection{Particle Data Structures}
 \subsubsection{Carray Class}
 In choosing the underlying data structure several considerations where taken into account. First, the
@@ -543,6 +552,17 @@ the procedure is similar, with the exception that particle is periodically shift
 instead of being mirrored.
 
 \subsubsection{Load Balance}
+Our load balance scheme described in Section is implemented through the \lstinline{LoadBalance}
+class. The method \lstinline{distribute()} performs the redistribution of particles across processors in a 
+parallel run. The \lstinline{LoadBalance} class is essentially the API. Internally, it has a reference
+to a \lstinline{Tree} class that creates a tree from the Hilbert keys and performs all the necessary
+operations. This class was one of the first class created before the main ideas of the code worn born
+out. Therefore, this class will be heavily modified in the next revision. First, the API needs to be
+become independent of the internal implementation. Second, we want to generalize the load balance
+scheme to allow more mature load balancing scheme. Our current load balance scheme is a simplistic
+and more optimized implementations exists. For example we would like to follow pysph and use the Zoltan 
+\citep{Devine2000}framework. Zoltan is an mature framework offering geometric,
+graph-based, hypergraph-based partioning algorithms.
 
 
 % Core Fluid Computation
@@ -601,9 +621,8 @@ speed of the fluid. We have found this formulation to adequately remove the deta
 state of the fluid from other calculations.
 
 Currently the \lstinline{EquationStateBase} is simplistic. However, in the next revision we plan
-to extend its functionality. This is because a chemistry scheme is being developed. With an
-added chemistry solver, additional species must be tracked and depending the equation of state
-these fields.
+to extend its functionality to include the computation of chemistry species. This is because a chemistry 
+solver is being developed.
 
 % Optional Fluid Computation
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
