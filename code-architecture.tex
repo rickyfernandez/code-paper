@@ -584,15 +584,26 @@ schemes make use of the reconstruction several times in Runge-Kutta solver varia
 and \cite{Duffell2011}).
 
 \subsection{Equation of State}
-Our equation state is implemented through \lstinline{EquationStateBase}. We
-decided 
+Due to the implementation of the reconstruction and Riemann solvers, primitive fields
+must be computed. The computation of primitive fields requires an equation of state. 
+Since there are multiple formulations of an equation of state we have 
+decided to implement an API through the \lstinline{EquationStateBase} class. The methods
+are listed below:
 \begin{itemize}
-    \item \lstinline{conservative_from_primitive()}: modify primitive variables.
-    \item \lstinline{primitive_from_conservative()}: modify conservative variables.
-    \item \lstinline{sound_speed()}: modify flux terms.
-    \item \lstinline{get_gamma()}: calculate source components.
+    \item \lstinline{conservative_from_primitive()}: compute conservative fields from primitive.
+    \item \lstinline{primitive_from_conservative()}: compute primitive fields form conservative.
+    \item \lstinline{sound_speed()}: compute the sound speed of the fluid.
+    \item \lstinline{get_gamma()}: compute the ratio of specific heats.
 \end{itemize}
+The \lstinline{EquationStateBase} is responsible for converting the fields from conservative
+to primitive and vice versa. Furthermore, the equation of state can calculate the sound
+speed of the fluid. We have found this formulation to adequately remove the details of the
+state of the fluid from other calculations.
 
+Currently the \lstinline{EquationStateBase} is simplistic. However, in the next revision we plan
+to extend its functionality. This is because a chemistry scheme is being developed. With an
+added chemistry solver, additional species must be tracked and depending the equation of state
+these fields.
 
 % Optional Fluid Computation
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
