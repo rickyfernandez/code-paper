@@ -7,8 +7,8 @@ comfortable with the syntax. As a road map, Figure \ref{fig.phd_design} shows a 
 simulation, integration, temporal control, geometric computation, core fluid
 computation and optional fluid computation. This categorization, has lead the code
 to be flexible enough to allow modifications without heavily disrupting other
-portions of the code. Furthermore, each component may composed of one or more
-subcomponents. In the next sections we will go into detail of each component and subcomponent.
+portions of the code. Furthermore, each component can be composed of one or more
+subcomponents. In the following sections, we will go into detail of each component and subcomponent.
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.8\textwidth]{figures/phd_chart.eps}
@@ -26,39 +26,39 @@ traits that are common throughout the code. Specifically we will describe field 
 inheritance and data structures.
 
 \subsubsection{Field Registration}
-Form our past experience, we have found out that one of the challenging problems in maintaining codes
+Form our past experience, we have found that one of the challenging problems in maintaining codes
 is that of adding new fields. There are many reasons why to add new fields, for example,
 an implementation of new physics module (MHD, radiation, chemistry etc.) or adding a passive scalar
 to track some portion of the fluid or modification of an existing algorithm that needs an auxiliary
 field which has not been stored. In any case, the addition of a new field can be challenging
-if the computation has been hard coded or the data structures, for example C structs, do not
+if the computation has been hard coded or the data structures, for example \texttt{C} structs, do not
 allow for the addition of new fields. For this reason, we adopted a data structure
 that allows registration of fields (see Section~\ref{sec.carraycontainer}). In this manner
 fields can be easily added in the future.
 
 From these considerations we will see a common thread with our classes, most have a method
-for field registration or addition:
+for registration or internal addition of fields:
 \begin{itemize}
 	\item \lstinline{register_fields()} add fields to the simulation.
     \item \lstinline{add_fields()} add fields to self by inspecting current simulation fields.
 \end{itemize}
-For registration, the class usually inspects the particle data structure and creates fields
-necessary for the simulation. As an example, gravity registers the acceleration to the particles
-in the proper dimension. In this manner, we don't have unnecessary fields during the simulation
-(3D fields for 2D runs). Likewise, for addition of fields the class usually inspects the
-particle data structure and proceeds to register the proper fields internally. For example, gravity 
-registers internally tree moment fields with the proper dimension.
+For registration, classes usually inspect the particle container (see Section~\ref{sec.carraycontainer})
+and create the fields necessary for the simulation. As an example, gravity registers the acceleration fields
+in the proper dimension to the particle container. In this manner, we don't have unnecessary fields during 
+the simulation (3D fields for 2D runs). Similarly, classes register fields internally by usually
+inspecting the particle container. For example, gravity inspects the particle container to internally 
+register the correct dimension of the tree moments.
 
 Since any number of fields can be registered, we have also allowed the ability to group
-fields by names. This has been extensively used to group collections of fields such as
+fields by names. This has been extensively used to group collections of fields, for example,
 primitive and conservative fields. This has allowed to easily retrieve groups of fields
-that can computed as a whole.
+that can be computed simultaneously.
 
 \subsubsection{Class Dependencies}
-Another source for future problems is when an algorithm depends on another. For example
+Another source for future problems is when a class depends on another class. For example
 our gravity tree solver depends on our load balance implementation. If the algorithms
-are designed concurrently, then proper consideration is taken account on how they will
-interact with one another. However, because of the development of new algorithms or experimentations, 
+are designed concurrently, then proper consideration is taken for their interaction.
+However, because of the development of new algorithms or experimentations, 
 classes will eventually need to interact with others that where not originally designed for. In these
 situations common options are to re-factor the algorithm or even rewrite the algorithm itself. Both 
 methods can become cumbersome as the code develops and matures and changing one portion of the code 
@@ -66,12 +66,12 @@ may create a cascade of unwanted changes.
 
 In our case we decided to write our classes as encapsulated computations (see Figure 
 \ref{fig.phd_design}). This means we have
-tried to segregate oure computations as independent tasks with interactions between each other
-defined through an Application Programming Interface (API). For the most part, each computation
+tried to segregate our computations as independent tasks with interactions
+through an Application Programming Interface (API). For the most part, each computation
 has a base class (i.e \lstinline{ReconstructionBase}, \lstinline{RiemannBase}, 
 \lstinline{InetgrateBase} etc.) that
 defines the methods it can perform. Moreover, the base class only serves as a template and
-returns a warning if accessed. Thus, each implementation inherits the base class and defines
+returns a warning if accessed. Thus, each implementation inherits the base class and must define
 the actual computation. Further, if a method depends another class it has to be written in
 such a way that it confines to the API. Therefore, our algorithms are designed to conform to an API
 and any future development will have to abide by it.
@@ -79,7 +79,7 @@ and any future development will have to abide by it.
 \subsection{Serialization of classes and parameters}
 For the onset, our classes only take \texttt{Python} core data types as arguments for initialization.
 This decision was motivated by our restarting and data storing scheme. Each class can be save as
-a string repersentation. Meaning that the name of the class and and all key word arguments are
+a string representation. Meaning that the name of the class and and all key word arguments are
 saved as key string dictionary. This information is enough to query create the class with its
 values at any time. Therefor during an output, each class in the simulation is generated its
 string information. Then all strings are append into a master list and a json file is created
@@ -89,25 +89,30 @@ needed to restart a file.
 \subsection{Particle Data Structures}
 \subsubsection{Carray Class}
 In choosing the underlying data structure several considerations where taken into account. First, the
-data has to be accessible in \texttt{Python} and in \texttt{C}. Second, the data structure has to
-accommodate several different data types. For this reason we chose a data structure that mimics
-\texttt{Numpy} arrays, in the sense that the raw data is allocated in \texttt{C} and an interface exist that
-manipulates the data in either \texttt{C} or \texttt{Python}. With this approach a decision had to be
-made in the form of the raw data. Two choices where considered, either the data would
-be held in structs or arrays. The benefit of structs would allow subfields of the data
-be compact and allow easy implementations of passing and receiving data from other
-processors in parallel runs. Further \texttt{Numpy} has an interface, that treats
-arrays of structs as record \texttt{Numpy} arrays. However, this form was abandoned early on
-as the sub-fields would have to be hard coded and would not allow the creation of
+data has to be accessible in \texttt{Python} and \texttt{C}. Second, the data structure has to
+accommodate several different data types. From these considerations, we wanted a data structure
+that closely resembles a \texttt{Numpy} array. \texttt{Numpy} arrays allocate raw data in \texttt{C} and 
+allow the user to manipulate it in \texttt{Python} or \texttt{C}. With this design in mind, a
+decision had to be made in the underlying structure of the raw data. Two choices where considered, 
+either the data would be held in \texttt{C} structs or arrays. The benefit of using structs is that it
+can encapsulate all the particle data. Thus, functions could operate on particle by particle basis.
+Structs are also easily suited for passing and receiving data from other processors
+in parallel runs. Moreover, \texttt{Numpy} has an interface that treats
+arrays of structs as a record array. However, this form was abandoned early on
+as the attributes of the struct would have to be hard coded and therefore not allow the creation of
 dynamic fields at run time. With this consideration, the raw data was chosen to be
 \texttt{C} arrays. 
 
-The exact implementation heavily depends on the \lstinline{Carray} class from the \texttt{pysph} code 
+The exact implementation heavily depends on the \lstinline{CarrayBase} class from the \texttt{pysph} code 
 \citep{Ramachandran2016}. We have used this class as a starting point and have built functionality around
 it. This class can be initialized in \texttt{Python} or \texttt{Cython} and the
-interface closely resembles the list class of \texttt{C++} by allowing indexing and memory management. 
-Further, \lstinline{Carray}s can return a \texttt{Numpy} array, allowing the user to use all \texttt{Numpy} 
-functional (i.e. slicing and fancy indexing). Below is a simple example using a \lstinline{Carray}.
+interface closely resembles the \texttt{vector} template in \texttt{C++}. Like a \texttt{vector},
+a \lstinline{CarrayBase} allows for indexing and dynamic memory management. 
+Further, a \lstinline{CarrayBase} can return a \texttt{Numpy} array, allowing the user to use all 
+the \texttt{Numpy} functionality (i.e. slicing and fancy indexing). A \lstinline{CarrayBase} comes 
+in four different data types, \lstinline{DoubleArray}, \lstinline{IntArray}, \lstinline{LongArray},
+and \lstinline{LongLongArray} with \lstinline{CarrayBase} as the parent class for subtype polymorphism.
+Below is a simple example using a \lstinline{DoubleArray}.
 \begin{lstlisting}
 import phd
 
@@ -123,11 +128,11 @@ x.resize(5)    # resize to 5 doubles
 xnp = x.get_npy_array()      # numpy array reference
 xnp[:] = np.arange(x.length) # numpy slice
 \end{lstlisting}
-In this example a \lstinline{Carray} is created with 10 doubles, then assigned values by indexing. Notice
-that the length of the \lstinline{Carray} can be found by using the \lstinline{len()} function or the 
-\lstinline{length} attribute. The \lstinline{Carray} then has a value appended to it followed by
-a resizing of length of 5. Finally, the get \lstinline{npy_array()} is called returning a \texttt{Numpy}
-array which allows the use of slicing. 
+In this example a \lstinline{DoubleArray} is created with 10 doubles, then assigned values by indexing. 
+Notice that the length of the \lstinline{DoubleArray} can be found by using the \lstinline{len()}
+function or the \lstinline{length} attribute. The \lstinline{DoubleArray} then has a value appended to
+it followed by a resizing of length of 5. Finally, the \lstinline{get_npy_array()} method is invoked 
+returning a \texttt{Numpy} array to be used for slicing. 
 
 \subsubsection{CarrayContainer Class}
 \label{sec.carraycontainer}
@@ -136,7 +141,7 @@ many circumstances for the need of a collection of Carrays. For example the x, y
 of a particle or the center of mass and moments of a node in the gravitational tree. Therefore,
 another data structure has been implemented to facilitate the use of collection of Carrays. The data
 structure is called a CarrayContainer and like the Carray it has many methods to manipulate the
-underlying data. The CarrayContainer in some aspects mimics a python dictionary in the sense
+underlying data. The CarrayContainer in some aspects mimics a python dictionary in the similar fashion
 that each carray can be retrieved by a string key.
 \begin{lstlisting}
 import phd
