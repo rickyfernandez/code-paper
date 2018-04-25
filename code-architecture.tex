@@ -136,90 +136,132 @@ returning a \texttt{Numpy} array to be used for slicing.
 
 \subsubsection{CarrayContainer Class}
 \label{sec.carraycontainer}
-The use of Carrays allow to easily manipulate arrays of certain type of data. However, there are
-many circumstances for the need of a collection of Carrays. For example the x, y, and z position
-of a particle or the center of mass and moments of a node in the gravitational tree. Therefore,
-another data structure has been implemented to facilitate the use of collection of Carrays. The data
-structure is called a CarrayContainer and like the Carray it has many methods to manipulate the
-underlying data. The CarrayContainer in some aspects mimics a python dictionary in the similar fashion
-that each carray can be retrieved by a string key.
+The use of the \lstinline{CarrayBase} class allows to easily manipulate contiguous data of a certain
+type. However, there are many circumstances that an algorithm needs to operate on several 
+\lstinline{CarrayBase}s collectively. For example, the Riemann solver needs all the primitive fields
+to estimate the fluxes. Although, there is nothing wrong with having a function working on
+several \lstinline{CarrayBase}s. However, it can become cumbersome to keep track of all
+\lstinline{CarrayBase}s.
+Therefore, another data structure has been implemented that stores a collection
+of \lstinline{CarrayBase}s of the same size. The data structure is called a \lstinline{CarrayContainer}
+and like the \lstinline{CarrayBase} it has many methods to manipulate the underlying data.
+Below is listed some of the most common used methods:
+\begin{itemize}
+	\item \lstinline{register_carray()}: register new \lstinline{CarrayBase} to the container.
+	\item \lstinline{get_carray_size()}: size of the \lstinline{CarrayBase}s contained.
+    \item \lstinline{remove_items()}: remove elements at given indices from all \lstinline{CarrayBase}s.
+    \item \lstinline{resize()}: resize each \lstinline{CarrayBase} to given size.
+    \item \lstinline{extract_items()}: return \lstinline{CarrayContainer} with values from given indices.
+    \item \lstinline{append_container()}: append \lstinline{CarrayConatiner} to self.
+\end{itemize}
+As it can be seen from the list, most of the methods operate on the collection of \lstinline{CarrayBase}s
+as a whole. The class only allows \lstinline{CarrayBase}s of the same size and produces a runtime error 
+otherwise. Additionally, each registered \lstinline{CarrayBase} is associated with a string key such
+that it can be retrieved for later use. Below is an example of using the \lstinline{CarrayContainer}.
 \begin{lstlisting}
 import phd
 import numpy as np
 
-carrys = {"x": "double", "y", "double"}
+# create a container of 10 2d positions
+carrys = {"x": "double", "y": "double"}
+positions = phd.CarrayContainer(10, carrays)
 
-ca_con = phd.CarrayContainer(10, carrays)
+# assign random values to each carray
+size = positions.get_carray_size()
+positions["x"][:] = np.random.rand(size)
+positions["y"][:] = np.random.rand(size)
+
+# add the z dimension
+positions.register_carray(size, "z")
+positions["z"][:] = np.random.rand(size)
+
+# create 5 new random positions
+carrays = {"x": "double", "y": "double", "z": "double"}
+positions2 = phd.CarrayContainer(5, carrays)
 size = ca_con.get_carray_size()
-ca_con["x"][:] = np.random.rand(size)
-ca_con["y"][:] = np.random.rand(size)
+for ax in "xyz":
+	positions2[ax][:] = np.random.rand(size)
 
-ca_con2 = phd.CarrayContainer(5, carrays)
-size = ca_con.get_carray_size()
-ca_con["x"][:] = np.random.rand(size)
-ca_con["y"][:] = np.random.rand(size)
+# append new positions to old positions
+positions.append_container(positions2)
 
-ca_con.append(ca_con2)
-ca_con.remove(np.array([1, 3, 9])
+# remove positions at selected indices
+positions.remove(np.array([1, 3, 9])
+assert(positions.get_carray_size() == 12)
 \end{lstlisting}
-Most of the routines of Carrays have been extended to CarrayConatiner to operate on
-all Carrays in the Container. Further the container has routines to subset, remove, paste
-and add values to certain elements.
+In the above example, a \lstinline{CarrayContainer} is created with two \lstinline{DoubleArray}s
+labeled ``x'' and ``y'' of size 10 and stored in the \lstinline{position} variable. Then each 
+\lstinline{DoubleArray} is retrieved by their key value and assigned random values. Next a new 
+\lstinline{DoubleArray} labeled ``z'' is registered to the container and assigned random values.
+Then a second \lstinline{CarrayContainer} is created with random values and is append to
+\lstinline{position}. Finally, vales at indices 1, 3 and 9 are removed from each \lstinline{DoubleArray}.
 
+% Simulation Class
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Simulation Class}
 The \lstinline{Simulation} class is the main driver for advancing the solution in time
 and coordinating outputs to disk and terminal. The two most important methods of this
-class are listed below
+class are listed below:
 \begin{itemize}
     \item \lstinline{solve()}: advance \lstinline{IntegrateBase} to its final state while
         outputting all necessary information. 
     \item \lstinline{compute_time_step()}: aggregate all time steps and enforce the smallest.
 \end{itemize}
-From its inception, the class was designed to be independent of the solvers. This was 
-accomplished by distinguishing state computation and state advancing methods. For example,
-\lstinline{IntegrateBase} can only perform a computation at a given temporal state 
-(see Section~\ref{sec.integrator} for details) while \lstinline{Simulation} can
-dictate when and the number of computations. Thus, \lstinline{Simulation} controls the
+From its inception, the class was designed to be independent of the solvers.
+This was accomplished by viewing the simulation as a series of time
+advancements. Specifically, \lstinline{IntegrateBase} can only perform a single time step
+from its given state (see Section~\ref{sec.integrator} for details) while \lstinline{Simulation}
+can dictate when and the number of time steps. Thus, \lstinline{Simulation} controls the
 time advancement independently of the equations being solved. As of writing three integrators
 exist, however, adding a new integrator is relatively straightforward.
 
 During the course of a simulation the class is responsible to schedule outputs and
-determined if the simulation has completed. Simulation outputs and termination are 
+determine if the simulation has completed. Simulation outputs and termination are 
 designated by the \lstinline{SimulationOutputerBase} and \lstinline{SimulationFinisherBase} 
 classes respectively (see Section~\ref{sec.outputters} for details). At the end of every time
 step the class calls \lstinline{compute_time_step()} to modify the current time step and
-output any necessary data by cycling through all outputters. Likewise, at the beginning of
+output any necessary data by cycling through all outputers. Likewise, at the beginning of
 the time step the class cycles through all \lstinline{SimulationFinisherBase} classes 
 in search for a termination signal.
 
 Lastly, the simulation class also controls logging information (see Section~\ref{sec.logging}
-for details). 
-Log information is currently printed to the terminal and saved to a log file. The simulation class 
-allows the ability to pick how much information should be printed and saved. In parallel runs, the 
-root processor takes responsibility for writing to the log file and displaying to terminal.
+for details). Log information is currently printed to the terminal and saved to a log file.
+Additionally, the class allows the ability to chose the level of detail for logging.
+In parallel runs, the root processor takes responsibility for writing to the log file
+and displaying to the terminal.
 
 
 % Temporal Control and I/O
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Temporal Control and I/O}
 \subsubsection{Reader/Writer Class}
-To allow the code to output different data formats, we have implemented 
-a \lstinline{ReaderWriterBase} class. This gives the freedom to the user
-in what format should the particle information be saved in. Likewise, this
-allows that data to be read in any format. The standard api of the 
-\lstinline{ReaderWriterBase} is listed below:
+To allow the code to be outputted in a variety of different data formats, we have implemented 
+a \lstinline{ReaderWriterBase} class. This allows the user the freedom to
+output the data to any desired format. Likewise, this also allows the data to be
+read in any format. Every instance of \lstinline{ReaderWriterBase} is associated with a 
+\lstinline{SimulationOuputerBase} (see Section~\ref{sec.outputters}) which signals when
+output should be created. In this way, multiple outputs can be created at various
+moments during the simulation. The standard API of the \lstinline{ReaderWriterBase} is
+listed below:
 \begin{itemize}
 	\item \lstinline{read()} read data in a specific format.
     \item \lstinline{write()} write data in a specific format.
 \end{itemize}
-With such a framework, new formats can be easily implemented. Further, this
-allows a simple way to create a front end to read data from another simulation.
+With such a framework, new formats can be easily implemented. Moreover, this
+allows a simple way to create a front end to read data from other codes. As of writing,
+we have implemented a \lstinline{Hdf5} class to read and write particle data in
+\texttt{hdf5}\footnote{\url{https://www.hdfgroup.org/solutions/hdf5/}} format. We are
+currently in the process of adding new data formats.
 
 Although this framework facilitates the option to save data in different formats,
-we believe this framework has more general capabilities. Since the \lstinline{ReaderWriterBase}
-has accessed to the integrator, any component of the simulation and be considered for
-output. Moreover, analysis can be performed ouputing information that techniqua
+we believe this framework has far more reaching capabilities. Since the \lstinline{ReaderWriterBase}
+has accessed to the integrator, any component of the simulation can be considered for
+output. Also, output does not necessarily have to be particle data saved to disk. This framework
+can easily be used to create plots, notify that an output has been created through an
+email, or even transfer the output to a remote host.
 
+As a simple example, we show below how one can easily track the energy of the system
+by using this framework.
 \begin{lstlisting}
 ...
 class EnergyTracker(ReaderWriterBase):
@@ -238,6 +280,12 @@ class EnergyTracker(ReaderWriterBase):
         message = "Energy values: Kinetic %.2E Gravity %.2E" % (kinetic, potential)
         phdLogger.info(message)
 \end{lstlisting}
+Our system of interest is a fluid simulation which includes gravity.
+First, a new class called \lstinline{EnergyTracker} is created by inheriting \lstinline{ReaderWriterBase}
+with the \lstinline{write} method overwritten. The new method simply calculates the total kinetic
+and potential energy of the system and then outputs the information to the logger. Then this
+class is registered to the appropriate \lstinline{SimulationOutputerBase} and the calculation
+will be performed at the appropriate times.
 
 \subsubsection{Outputer and Finisher Class}
 \label{sec.outputters}
