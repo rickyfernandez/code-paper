@@ -234,8 +234,110 @@ and displaying to the terminal.
 % Temporal Control and I/O
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Temporal Control and I/O}
+In the following sections we will go over the implementations of outputting data 
+(\lstinline{ReadWriterBase}), requesting an output (\lstinline{SimulationOutputBase}), and completion
+of the simulation (\lstinline{SimulationFinisherBase}). All these methods are controlled by a
+\lstinline{SimulationTimeMangager} class which consists of any number of 
+\lstinline{SimulationOutputerBase}s and \lstinline{SimulationFinisherBase}s.
+
+
+
+
+\subsubsection{Outputer and Finisher Class}
+\label{sec.outputters}
+
+The code has been designed to handle arbitrary signals for outputting data
+and completion of the simulation. This has been achieved by introducing the
+\lstinline{SimulationOutputerBase} class for output and
+\lstinline{SimulationFinisherBase} class for completion. At the end of every
+time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
+of the simulation) the \lstinline{SimulationTimeManager} calls all registered
+\lstinline{SimulationOutputerBase}s and \lstinline{SimulationFinisherBase}s.
+During each call the class receives complete control of the integrator. Thus,
+the class can inspect the time, time step, iteration, particle data, flux data,
+reconstruction data etc. In this way, any viable condition can be applied
+for signaling an output or the completion of a simulation. Such an implementation
+forgoes the hard coded approach of multiple \texttt{if} \texttt{else} statements
+and allows the flexibility to implement as many conditions as needed.
+
+The creation of each \lstinline{SimulationOutputerBase} and \lstinline{SimulationFinisherBase}
+must be registered to \lstinline{SimulationTimeManager}. The \lstinline{SimulationTimeManager}
+can hold any number of registered classes and it is responsible for maintaining consistency 
+across them. For example, both \lstinline{SimulationOutpuerBase} and 
+\lstinline{SimulationFinisherBase} are able to modify the time step. Therefore, it is
+the responsibility of the \lstinline{SimulationTimeManager} to aggregate all time steps
+and enforce the smallest one such that no condition is overlooked.
+
+To conclude this section we give an example, some what trivial but highlights the main points, of
+how to create an outputter and finisher. For our example, we use the sedov problem from 
+section cite. We are interested to output all time steps once the shock has reached
+a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
+use the analytical solution to extrapolate when such values would occur. However that
+assumes the shock track exactly. In our scenario we let the simulation do the work
+for us.
+
+First we begin by defining an outputter with the objective to start outputing
+all data once the density value of $\rho=2$ has been reached (see code excerpt). This
+is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
+\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
+\lstinline{check_for_output}, we check is the the outputter is the main loop state
+and if the max density is greater than \lstinline{density_min}. Moreover, there
+is no need to change the time step, therefore, it is left unaltered.
+
+
+\begin{lstlisting}
+...
+class OutputSedovDensity(SimulationOutputerBase):
+    def __init__(self, density_min, base_name="density_output",
+                 counter=0, pad=4):
+        super(OutputSedovDensity, self).__init__(base_name, counter, pad)
+        self.density_min = density_min 
+
+    def check_for_output(self, simulation):
+        """Return True to signal the simulation has reached
+        sedov interval to ouput data."""
+        integrator = simulation.integrator
+        state = simulation._state == SimulationTAGS.MAIN_LOOP
+        output_sedov = integrator.particles["density"].max() >= self.density_min:
+
+        if state and output_sedov:
+            return True
+        return False
+
+    def modify_timestep(self, simulation):
+        """Return consistent time step."""
+        # not modifying
+        return simulation.integrator.dt
+
+\end{lstlisting}
+At this point our data will be outputted until the simulation is finished. To
+create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
+we create a new class \lstinline{SedovDensityFinisher}. This class inherits
+\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
+method. In our case we need only to compare our max density values with
+$\rho_{\mathrm{max}}$.
+\begin{lstlisting}
+...
+class SedovDensityFinisher(SimulationFinisherBase):
+    def __init__(self, density_max, **kwargs):
+        self.density_max = density_max
+
+    def finished(self, simulation):
+        """Return True to signal the simulation is finished
+        if reached max iteration number.
+        """
+        if simulation.integrator.particles["density"].max() >= self.density_max:
+            return True
+        else:
+            return False
+
+\end{lstlisting}
+
+Although are example was simplistic, we hope that it shows the flexibility and power
+what the outputters and finishers may achieve.  
+
 \subsubsection{Reader/Writer Class}
-To allow the code to be outputted in a variety of different data formats, we have implemented 
+To allow the code to output data in a variety of different formats, we have implemented 
 a \lstinline{ReaderWriterBase} class. This allows the user the freedom to
 output the data to any desired format. Likewise, this also allows the data to be
 read in any format. Every instance of \lstinline{ReaderWriterBase} is associated with a 
@@ -287,95 +389,6 @@ and potential energy of the system and then outputs the information to the logge
 class is registered to the appropriate \lstinline{SimulationOutputerBase} and the calculation
 will be performed at the appropriate times.
 
-\subsubsection{Outputer and Finisher Class}
-\label{sec.outputters}
-
-The code has been desinged to handle arbitrary signals for outputing data
-and completion of the simulation. This has been achieved by introducing the
-\lstinline{SimulationOutputerBase} class for output and
-\lstinline{SimulationFinisherBase} class for completion.
-
-At the end of every
-time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
-of the simulation) a call to all registered outputers and finishers is
-performed. In each call the class has complete control of the integrator. Thus
-the classes can inspect the time, time step, iteration, particle data, flux data,
-reconstruciton data etc. This allows for a general conditions instead of hard
-coded ones. Further this opens the door to allow conditions
-
-the options are plentiful and we hope to make large of use in the next
-revision of the code.
-
-In the case of \lstinline{SimulationOutputerBase} a writer is registered with it.
-
-In this section we show, some what trivial but highlights the main points, an example of
-how to create an outputter and finisher. For our example, we use the sedov problem from 
-section cite. We are interested to output all time steps once the shock has reached
-a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
-use the analytical solution to extrapolate when such values would occur. However that
-assumes the shock track exactly. In our scenario we let the simulation do the work
-for us.
-
-First we begin by defining an outputter with the objective to start outputing
-all data once the density value of $\rho=2$ has been reached (see code excerpt). This
-is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
-\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
-\lstinline{check_for_output}, we check is the the outputter is the main loop state
-and if the max density is greater than \lstinline{density_min}. Moreover, there
-is no need to change the time step, therefore, it is left unaltered.
-
-
-\begin{lstlisting}
-...
-class OutputSedovDensity(SimulationOutputerBase):
-    def __init__(self, density_min, base_name="density_output",
-                 counter=0, pad=4, **kwargs):
-        super(OutputSedovDensity, self).__init__(base_name, counter, pad, **kwargs)
-        self.density_min = density_min 
-
-    def check_for_output(self, simulation):
-        """Return True to signal the simulation has reached
-        sedov interval to ouput data."""
-        integrator = simulation.integrator
-        state = simulation._state == SimulationTAGS.MAIN_LOOP
-        output_sedov = integrator.particles["density"].max() >= self.density_min:
-
-        if state and output_sedov:
-            return True
-        return False
-
-    def modify_timestep(self, simulation):
-        """Return consistent time step."""
-        # not modifying
-        return simulation.integrator.dt
-
-\end{lstlisting}
-At this point our data will be outputted until the simulation is finished. To
-create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
-we create a new class \lstinline{SedovDensityFinisher}. This class inherits
-\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
-method. In our case we need only to compare our max density values with
-$\rho_{\mathrm{max}}$.
-\begin{lstlisting}
-...
-class SedovDensityFinisher(SimulationFinisherBase):
-    def __init__(self, density_max, **kwargs):
-        self.density_max = density_max
-
-    def finished(self, simulation):
-        """Return True to signal the simulation is finished
-        if reached max iteration number.
-        """
-        if simulation.integrator.particles["density"].max() >= self.density_max:
-            return True
-        else:
-            return False
-
-\end{lstlisting}
-
-Although are example was simplistic, we hope that it shows the flexibility and power
-what the outputters and finishers may achieve.  
-
 \subsubsection{Logging}
 \label{sec.logging}
 Event logging during a simulation is performed through the python 
@@ -392,7 +405,7 @@ For our purposes, the logger has four levels of logging. They are listed below:
     \item warning: unexpected result that may lead to future problem.
 \end{itemize}
 The log levels have been listed in order of inclusion. Meaning if ``warning'' is chosen, then all messages
-types are logged. However if ``info'' is chosen only messages of type ``debug" and ``info'' or logged.
+types are logged. However if ``info'' is chosen only messages of type ``debug" and ``info'' are logged.
 At runtime the log level and file to store the messages can be specified through the 
 \lstinline{Simulation} class.
 
