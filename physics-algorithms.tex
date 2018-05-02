@@ -136,6 +136,7 @@ $\frac{\partial\mathbf{W}}{\partial t}$. However, both derivatives
 are related through the Euler equations in primitive form
 %
 \begin{equation}
+	\label{eq.time.derivative}
     \frac{\partial\mathbf{W}}{\partial t}  + \mathbf{A}
     	(\mathbf{W})\frac{\partial\mathbf{W}}{\partial\mathbf{r}} = 0,
     \quad
@@ -323,6 +324,7 @@ by the following
 This ensures that the correct values are used in the riemann solver.
 
 \subsubsection{Time Integration}
+\label{sec.time.integration}
 The time integration using equation \ref{eq.euler.int} with \ref{eq.taylor} is
 a form of the MUSCL-Hancock scheme. For static meshes, the scheme is second
 order accurate in space and time. However, letting the mesh move introduces
@@ -410,6 +412,7 @@ particle is formed, however, the sign of the normal velocity component is flippe
 This ensures that the mass flux vanishes on the surface of the boundary.
 
 \subsection{Gravity}
+\label{sec.gravity}
 In the presence of gravity the Euler equations \ref{eq.euler} are modified by
 a source term
 %
@@ -451,6 +454,7 @@ In this case the time extrapolated variables include a gravitational
 component. Second, the momentum and energy is updated during the flux update
 %
 \begin{equation}
+	\label{eq.gravity.update}
 	\begin{array}{rcl}
         \Delta\mathbf{p}_i & = &
         	\frac{\Delta t}{2}\left(\sum_j A_{ij}^n\mathbf{\hat{F}}_{ij,\mathbf{p}}^n
@@ -470,6 +474,7 @@ component. Second, the momentum and energy is updated during the flux update
 \subsubsection{Tree}
 
 \subsection{Parallelism}
+\label{sec.parallel}
 \subsubsection{Partitioning}
 For domain decomposition we follow the approach of (Springel) and use
 a space filling curve. Here every particle position is mapped onto a

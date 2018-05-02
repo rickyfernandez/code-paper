@@ -236,69 +236,63 @@ and displaying to the terminal.
 \subsection{Temporal Control and I/O}
 In the following sections we will go over the implementations of outputting data 
 (\lstinline{ReadWriterBase}), requesting an output (\lstinline{SimulationOutputBase}), and completion
-of the simulation (\lstinline{SimulationFinisherBase}). All these methods are controlled by a
-\lstinline{SimulationTimeMangager} class which consists of any number of 
-\lstinline{SimulationOutputerBase}s and \lstinline{SimulationFinisherBase}s.
-
-
-
+of the simulation (\lstinline{SimulationFinisherBase}). All these classes are controlled by a
+\lstinline{SimulationTimeMangager} class which consists of any number of registered
+\lstinline{SimulationOutputerBase}s and \lstinline{SimulationFinisherBase}s. In this manner,
+any number number of conditions can be applied for signaling an output or the
+completion of the simulation.
 
 \subsubsection{Outputer and Finisher Class}
 \label{sec.outputters}
-
 The code has been designed to handle arbitrary signals for outputting data
 and completion of the simulation. This has been achieved by introducing the
 \lstinline{SimulationOutputerBase} class for output and
-\lstinline{SimulationFinisherBase} class for completion. At the end of every
+\lstinline{SimulationFinisherBase} class for completion. Each outputer and finisher instance
+must be registered to the \lstinline{SimulationTimeManager}. The \lstinline{SimulationTimeManager}
+can hold any number of them and it is responsible for maintaining consistency 
+across calls. For example, both \lstinline{SimulationOutpuerBase} and 
+\lstinline{SimulationFinisherBase} are able to produce a time step. Therefore, it is
+the responsibility of the \lstinline{SimulationTimeManager} to aggregate all time steps
+and enforce the smallest one such that no condition is overlooked. At the end of every
 time step (\lstinline{SimulationOutputerBase} includes the beginning and ending
 of the simulation) the \lstinline{SimulationTimeManager} calls all registered
 \lstinline{SimulationOutputerBase}s and \lstinline{SimulationFinisherBase}s.
 During each call the class receives complete control of the integrator. Thus,
 the class can inspect the time, time step, iteration, particle data, flux data,
 reconstruction data etc. In this way, any viable condition can be applied
-for signaling an output or the completion of a simulation. Such an implementation
+for signaling an output or the completion of the simulation. Such an implementation
 forgoes the hard coded approach of multiple \texttt{if} \texttt{else} statements
 and allows the flexibility to implement as many conditions as needed.
 
-The creation of each \lstinline{SimulationOutputerBase} and \lstinline{SimulationFinisherBase}
-must be registered to \lstinline{SimulationTimeManager}. The \lstinline{SimulationTimeManager}
-can hold any number of registered classes and it is responsible for maintaining consistency 
-across them. For example, both \lstinline{SimulationOutpuerBase} and 
-\lstinline{SimulationFinisherBase} are able to modify the time step. Therefore, it is
-the responsibility of the \lstinline{SimulationTimeManager} to aggregate all time steps
-and enforce the smallest one such that no condition is overlooked.
-
-To conclude this section we give an example, some what trivial but highlights the main points, of
-how to create an outputter and finisher. For our example, we use the sedov problem from 
-section cite. We are interested to output all time steps once the shock has reached
-a density $\rho=2$ and remains less than $\rho=3$. Of course in this situation one may
-use the analytical solution to extrapolate when such values would occur. However that
-assumes the shock track exactly. In our scenario we let the simulation do the work
+As an example on how to use this framework, we show how to implement an outputer and finsiher
+to the sedov problem from Section~\ref{sec.sedov}. We are interested to output all time steps once
+the shock has reached a density value grater then $\rho=2$. Also we want the simulation to completed once the shock
+reaches a value greater than or equal to $\rho=3$. Of course, in this
+situation one may use the analytical solution to extrapolate the time when such values would occur.
+However, this assumes that the shock is tracked exactly. In our scenario we let the simulation do the work
 for us.
 
-First we begin by defining an outputter with the objective to start outputing
-all data once the density value of $\rho=2$ has been reached (see code excerpt). This
+First we begin by defining an outputer, called \lstinline{OutputSedovDensity}, with the objective to output
+all data once the density value of $\rho=2$ has been reached (see code excerpt below). This
 is accomplished by inheriting \lstinline{SimulationOutputerBase} and modifying
-\lstinline{check_for_output} and \lstinline{modify_timestep}. For over writing
-\lstinline{check_for_output}, we check is the the outputter is the main loop state
-and if the max density is greater than \lstinline{density_min}. Moreover, there
-is no need to change the time step, therefore, it is left unaltered.
-
-
+\lstinline{check_for_output()} and \lstinline{modify_timestep()}. For overwriting
+\lstinline{check_for_output()}, we first check if the call is made in the main
+loop and second if the max density is greater than \lstinline{density_out}. Moreover, there
+is no need to change the time step therefore it is left unaltered.
 \begin{lstlisting}
 ...
 class OutputSedovDensity(SimulationOutputerBase):
-    def __init__(self, density_min, base_name="density_output",
+    def __init__(self, density_out=2, base_name="density_output",
                  counter=0, pad=4):
         super(OutputSedovDensity, self).__init__(base_name, counter, pad)
-        self.density_min = density_min 
+        self.density_out = density_out
 
     def check_for_output(self, simulation):
         """Return True to signal the simulation has reached
         sedov interval to ouput data."""
         integrator = simulation.integrator
         state = simulation._state == SimulationTAGS.MAIN_LOOP
-        output_sedov = integrator.particles["density"].max() >= self.density_min:
+        output_sedov = integrator.particles["density"].max() > self.density_out:
 
         if state and output_sedov:
             return True
@@ -308,36 +302,40 @@ class OutputSedovDensity(SimulationOutputerBase):
         """Return consistent time step."""
         # not modifying
         return simulation.integrator.dt
-
 \end{lstlisting}
-At this point our data will be outputted until the simulation is finished. To
-create a finisher at the moment when density has reached $\rho_{\mathrm{max}}$
-we create a new class \lstinline{SedovDensityFinisher}. This class inherits
-\lstinline{SimulationFinisherBase} and one needs to define the \lstinline{finished}
-method. In our case we need only to compare our max density values with
-$\rho_{\mathrm{max}}$.
+
+At this point we don't have a criteria to signal the completion of the simulation. To
+do this we will create a finisher class. This class will signal a completion when the simulation 
+density is greater then or equal to $\rho=3$. We will call it \lstinline{SedovDensityFinisher}, 
+and create ir by inheriting \lstinline{SimulationFinisherBase} (see code excerpt below).
+The \lstinline{finished()} method must be overwritten. In our case we need only to compare
+the max density with $\rho=3$.
 \begin{lstlisting}
 ...
 class SedovDensityFinisher(SimulationFinisherBase):
-    def __init__(self, density_max, **kwargs):
-        self.density_max = density_max
+    def __init__(self, density_stop=3):
+        self.density_stop = density_stop
 
     def finished(self, simulation):
         """Return True to signal the simulation is finished
         if reached max iteration number.
         """
-        if simulation.integrator.particles["density"].max() >= self.density_max:
+        if simulation.integrator.particles["density"].max() >= self.density_stop:
             return True
         else:
             return False
-
 \end{lstlisting}
 
-Although are example was simplistic, we hope that it shows the flexibility and power
-what the outputters and finishers may achieve.  
+With the creation of these two classes our simulation will output data at every time
+step when the density value is greater then $\rho=2$ and terminate when the density is greater
+then or equal to $\rho=3$. Although our example is simplistic, we hope that it shows the 
+flexibility and power what the outputers and finishers may achieve.  
 
 \subsubsection{Reader/Writer Class}
-To allow the code to output data in a variety of different formats, we have implemented 
+In the previous section, we mentioned that \lstinline{SimulationOutputBase} is used to
+signal when an ouput is requested. However, we did not mention the details of how an output
+is produced.
+To allow the code to output in a variety of different data formats, we have implemented 
 a \lstinline{ReaderWriterBase} class. This allows the user the freedom to
 output the data to any desired format. Likewise, this also allows the data to be
 read in any format. Every instance of \lstinline{ReaderWriterBase} is associated with a 
@@ -351,7 +349,7 @@ listed below:
 \end{itemize}
 With such a framework, new formats can be easily implemented. Moreover, this
 allows a simple way to create a front end to read data from other codes. As of writing,
-we have implemented a \lstinline{Hdf5} class to read and write particle data in
+we have implemented a class to read and write particle data in
 \texttt{hdf5}\footnote{\url{https://www.hdfgroup.org/solutions/hdf5/}} format. We are
 currently in the process of adding new data formats.
 
@@ -359,11 +357,11 @@ Although this framework facilitates the option to save data in different formats
 we believe this framework has far more reaching capabilities. Since the \lstinline{ReaderWriterBase}
 has accessed to the integrator, any component of the simulation can be considered for
 output. Also, output does not necessarily have to be particle data saved to disk. This framework
-can easily be used to create plots, notify that an output has been created through an
+can easily be used to create plots, send memory diagnosis through an
 email, or even transfer the output to a remote host.
 
 As a simple example, we show below how one can easily track the energy of the system
-by using this framework.
+under this framework.
 \begin{lstlisting}
 ...
 class EnergyTracker(ReaderWriterBase):
@@ -376,7 +374,7 @@ class EnergyTracker(ReaderWriterBase):
         	v2 += particles["velocity-z"]**2
             
         # calculate kinetic and potential energy of system    
-        kinetic = (0.4*particles["mass"]*v2).sum()
+        kinetic = 0.5*(particles["mass"]*v2).sum()
         potential = 0.5*(particles["mass"]*particles["potential"]).sum()
         
         message = "Energy values: Kinetic %.2E Gravity %.2E" % (kinetic, potential)
@@ -384,7 +382,7 @@ class EnergyTracker(ReaderWriterBase):
 \end{lstlisting}
 Our system of interest is a fluid simulation which includes gravity.
 First, a new class called \lstinline{EnergyTracker} is created by inheriting \lstinline{ReaderWriterBase}
-with the \lstinline{write} method overwritten. The new method simply calculates the total kinetic
+with the \lstinline{write()} method overwritten. The new method simply calculates the total kinetic
 and potential energy of the system and then outputs the information to the logger. Then this
 class is registered to the appropriate \lstinline{SimulationOutputerBase} and the calculation
 will be performed at the appropriate times.
@@ -415,7 +413,7 @@ import logging
 phdLogger = logging.getLogger("phd")
 ...
 phdLogger.info("Starting kinetic energy calculation")
-kinetic_energy = particles["mass"]*(particles["velocity-x"]**2 + particles["velocity-y"]**2)
+kinetic_energy = 0.5*particles["mass"]*(particles["velocity-x"]**2 + particles["velocity-y"]**2)
 
 if kinetic_energy.sum() > 0:
 	phdLogger.debug("Kinetic energy greater than zero")
@@ -428,7 +426,7 @@ has been modified such that logging information and storage is always handled by
 \label{sec.integrator}
 To advance the the state of a fluid to a specific time, a suitable integration
 scheme must be provided. Although we have laid out the details of the MUSCL-Hancock scheme
-in section cite, in practice, many schemes are available with different degrees of 
+in Section~\ref{sec.time.integration}, in practice, many schemes are available with different degrees of 
 strengths and weaknesses. Therefore, we found it necessary to have an implementation
 that allows the ability to easily switch from integration schemes. To this end, we have
 created the \lstinline{IntegrateBase} class which is responsible to advance the state
@@ -441,10 +439,10 @@ we have implemented a gravitational N-body solver in this framework. We find
 this framework to be versatile, allowing the user to chose from different schemes
 and allowing the ability to quickly create new schemes for experimentation.
 Currently we have implemented a static and moving mesh MUSCL-Hancock and a leap
-frog integrator.
+frog N-body integrator.
 
 To implement an integrator, the \lstinline{IntegrateBase} must be inherited. Below
-is the \lstinline{IntegrateBase} api:
+is the \lstinline{IntegrateBase} API:
 \begin{itemize}
     \item \lstinline{before_loop()} perform any needed initialization or initial computations. 
     \item \lstinline{compute_time_step()} compute current state time step.
@@ -455,8 +453,8 @@ For each integrator implementation one must define each method from the api. The
 has references to all the computation classes as well as state attributes (iteration
 counter, time step, and time). The most
 involved method is the \lstinline{evolve_time_step()} which defines the equations
-and method to be used. For clarity, we shown two integrator examples below. The first
-is an implementation of a non moving mesh MUSCL-Hancock integrator.
+and method to be used. For clarity, we show the implementation of the static mesh
+MUSCL-Hancock integrator below.
 \begin{lstlisting}
 def evolve_timestep(self):
     """Solve the compressible gas equations."""
@@ -618,26 +616,36 @@ the procedure is similar, with the exception that particle is periodically shift
 instead of being mirrored.
 
 \subsubsection{Load Balance}
-Our load balance scheme described in Section is implemented through the \lstinline{LoadBalance}
-class. The method \lstinline{distribute()} performs the redistribution of particles across processors in a 
-parallel run. The \lstinline{LoadBalance} class is essentially the API. Internally, it has a reference
-to a \lstinline{Tree} class that creates a tree from the Hilbert keys and performs all the necessary
-operations. This class was one of the first class created before the main ideas of the code worn born
-out. Therefore, this class will be heavily modified in the next revision. First, the API needs to be
-become independent of the internal implementation. Second, we want to generalize the load balance
-scheme to allow more mature load balancing scheme. Our current load balance scheme is a simplistic
-and more optimized implementations exists. For example we would like to follow pysph and use the Zoltan 
-\citep{Devine2000}framework. Zoltan is an mature framework offering geometric,
-graph-based, hypergraph-based partioning algorithms.
+Our load balance scheme described in Section~\ref{sec.parallel} is implemented through the 
+\lstinline{LoadBalance} class. The method \lstinline{distribute()} performs the redistribution of particles 
+across processors in a parallel run. The \lstinline{LoadBalance} class is essentially an API.
+Internally, it has a reference to a \lstinline{Tree} class that performs all the underlining operations. This 
+class was one of the early algorithms implemented before the core ideas of code was born out. Therefore, this 
+class will be heavily modified in the next revision. Two points of modification are, first, the API  needs to 
+be become independent of the internal implementation and, second, we want to generalize the load balance 
+scheme to allow more mature third party packages. Our current load balance scheme is a simplistic and more 
+optimized implementations exists. For example we would like to follow pysph and use the \texttt{Zoltan} 
+library \citep{Devine2000}. \texttt{Zoltan} is an mature framework offering geometric, graph-based, 
+hypergraph-based partioning algorithms for load balancing.
 
 
 % Core Fluid Computation
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Core Fluid Computation}
+In the preceding sections we will go over the core fluid computations. This encompass the
+reconstruction method (\lstinline{ReconstructionBase}), the Riemann solver (\lstinline{RiemannBase}),
+and the equation of state (\lstinline{EquationOfStateBase}).
+We believe this decomposition of classes allows the ability to easily implement new algorithms. In
+our case we have implemented two reconstruction and three Riemann methods. Moreover, even though our
+current state of the code is specific to the moving mesh method, we believe these classes, along with the
+\lstinline{IntgrateBase} (see Section~\ref{sec.integrator}), allow the entry to implement other fluid based 
+methods such as SPH \citep{Gingold1977}, mesh free \citep{Hopkins2015}, and discontinuous 
+Galerkin \citep{Mocz2014} methods.
+
 \subsubsection{Riemann Solver}
 The fluxes at each face of the mesh is constructed by the \lstinline{RiemannBase} class.
-As a common thread with all of our computation classes, the base class defines the api.
-The api is straight forward with only two methods to define:
+As a common thread with all of our computation classes, the base class defines the API.
+The API is straight forward with only two methods to define:
 \begin{itemize}
 	\item \lstinline{riemann_solver()} solve for fluxes at each interface.
     \item \lstinline{compute_time_step()} compute hydro time step.
@@ -651,30 +659,29 @@ rotating and boosting back into the lab frame. As of time of writing, we have
 implemented the HLL, HLLC, and Exact Riemann solvers.
 
 \subsubsection{Reconstruction}
-Once the mesh is created, cell center values need to be reconstructed to cell center faces
-in order to calculate the fluxes. The interface to implement a reconstruction
-scheme is dictated by the \lstinline{ReconstructionBase} class which has the following api:
+Once the mesh is created, cell center values need to be reconstructed to face cell center values
+in order to calculate the fluxes. The interface to implement the reconstruction
+scheme is dictated by the \lstinline{ReconstructionBase} class which has the following API:
 \begin{itemize}
 	\item \lstinline{compute_gradients()} calculate the gradients of the fields for each particle.
     \item \lstinline{add_spatial()} add gradients to expansion.
     \item \lstinline{add_temporal()} add time derivatives to expansion.
 \end{itemize}
-The api embodies a general deconstruction of eq. into three building blocks. First, is the
-calculation of the spatial derivatives (i.e gradients) by \lstinline{compute_gradients()}.
+The API embodies a general deconstruction of Equation~\ref{eq.taylor} into three building blocks.
+First, is the calculation of the spatial derivatives (i.e gradients) by \lstinline{compute_gradients()}.
 In this call the derivatives are computed through a specified scheme. For example, the gradients can be 
 calculated by the least square approach \citep{Pakmor2016} or through geometrical properties 
 \citep{Springel2010}. With the derivatives calculated cell center values can then be extrapolated spatially
-(\lstinline{add_spatial()}) or temporally (\lstinline{add_temporal()}). In this manner the
-user has complete control of the terms in the expansion.This is important to note, as many integrator 
-schemes make use of the reconstruction several times in Runge-Kutta solver variants (i.e \cite{Pakmor2016} 
-and \cite{Duffell2011}).
+(\lstinline{add_spatial()}) or temporally (\lstinline{add_temporal()}) by Equation~\ref{eq.time.derivative}.
+In this manner the user has complete control of the terms in the expansion. This is important to note,
+as many integrator schemes make use of the reconstruction several times, for example, the Runge-Kutta solver 
+variants (i.e \cite{Pakmor2016} and \cite{Duffell2011}).
 
 \subsection{Equation of State}
 Due to the implementation of the reconstruction and Riemann solvers, primitive fields
 must be computed. The computation of primitive fields requires an equation of state. 
 Since there are multiple formulations of an equation of state we have 
-decided to implement an API through the \lstinline{EquationStateBase} class. The methods
-are listed below:
+decided to implement an \lstinline{EquationStateBase} class with the following API:
 \begin{itemize}
     \item \lstinline{conservative_from_primitive()}: compute conservative fields from primitive.
     \item \lstinline{primitive_from_conservative()}: compute primitive fields form conservative.
@@ -684,58 +691,62 @@ are listed below:
 The \lstinline{EquationStateBase} is responsible for converting the fields from conservative
 to primitive and vice versa. Furthermore, the equation of state can calculate the sound
 speed of the fluid. We have found this formulation to adequately remove the details of the
-state of the fluid from other calculations.
-
-Currently the \lstinline{EquationStateBase} is simplistic. However, in the next revision we plan
-to extend its functionality to include the computation of chemistry species. This is because a chemistry 
-solver is being developed.
+state of the fluid from other calculations. Although our \lstinline{EquationStateBase} is simplistic,
+we plan to extend its functionality to include chemistry species in the next revision to allow
+the use of a chemistry solver.
 
 % Optional Fluid Computation
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Optional Fluid Computation}
 \subsubsection{General Source Terms}
-The inclusion of source terms has been implemented through a general source
-\lstinline{SourceTermBase} with methods listed below:
-\begin{itemize}
-    \item \lstinline{apply_primitve()}: modify primitive variables.
-    \item \lstinline{apply_conservative()}: modify conservative variables.
-    \item \lstinline{apply_flux()}: modify flux terms.
-    \item \lstinline{compute_source()}: calculate source components.
-    \item \lstinline{compute_time_step()}: calculate time step from source term.
-\end{itemize}
-This formulation was chosen after some considerable experimentation. One of the
+The inclusion of source terms has been implemented through an
+API class. Examples of source terms are gravity, chemistry and radiation.
+In general, the API is associated with a specific integrator.
+Although this creates more work for a given source term, we have found this to be a better
+solution then continual refactoring a preexisting source term such that can be molded to
+be consistent with several integrators. Furthermore, having an API allows to easily implement
+third party packages as source terms since the API is merely a wrapper to the main computation.
+The API formulation was chosen after some considerable experimentation. One of the
 earlier attempts was a registration process. In this scenario a source term
-would link any computation to class method. This information was stored
+would link any computation to a class method. This information was stored
 in a dictionary inside \lstinline{Simulation} and at runtime each class method
-was over written using Pythons decorator scheme. Although, this scheme makes
+was over written using \texttt{Python}s decorator scheme. This allowed source terms to ``hook''
+its computation with other calculations. Although, this scheme makes
 use of more advance programming methods we found that this implementation was
-not easy to discern. Moreover we found that this method left to much ambiguity
-to the source terms, allowing . Instead we
+not transparent and made debugging difficult. Instead we
 found this current implementation to be more understandable and easier to
 generalize.
 
-The api listed above are the mandatory methods to be defined for any source
-term. In general, we write an interface for each given source term. In this
-way if the integrator changes only the api has to be updated leaving
-the core of the source term unaltered. This also allows to easily implement
-third party libraries as source terms, chemistry or radiation for example.
-Once the methods have been defined the class is registered to 
-\lstinline{Simulation} class and will be invoked at the appropriate parts
-during the computation.
+The API for the MUSCL-Hancock integrator is listed below:
+\begin{itemize}
+    \item \lstinline{apply_primitve()}: modify primitive variables.
+    \item \lstinline{apply_conservative()}: modify conservative variables.
+    \item \lstinline{compute_source()}: calculate source components.
+    \item \lstinline{compute_time_step()}: calculate time step from source term.
+\end{itemize}
+The API is inspired by Equations \ref{eq.euler} and \ref{eq.time.derivative}.
+Including a source term to the fluid equations results to the right hand side of Equation
+\ref{eq.euler} no longer being zero. Moreover, since equation
+\ref{eq.euler} is the basis of the conservative update the conservative variables have
+to be augmented from the source term (\lstinline{apply_conservative()}). Similarly,
+the right hand side of Equation \ref{eq.time.derivative} is no longer zero and the
+expansion must also have a component form the source term (\lstinline{apply_primitive()}).
+The two remaining methods are for calculating the source term and modifying the time
+step. Once the methods have been defined the class is registered to
+\lstinline{Simulation} which can hold any number of source terms.
 
-\subsubsection{Gravity}
-For a more concrete example of how to include a source term we highlight the
-pieces used to include self gravity. Our self gravity is a tree based implementation
+\subsubsection{Self Gravity Example}
+For a more concrete example, we show how self gravity is implemented as a source term
+in the MUSCL-Hancock scheme. Our self gravity is a tree based implementation
 named \lstinline{GravityTree}. Its main routine is \lstinline{walk()} which is the
 calculation of gravitational accelerations from the current position of the particles.
-To include this as a source term we created a new class called \lstinline{SelfGravity}
-which inherits \lstinline{SourceTermBase}. As discussed in section, gravity alters
-the momentum and primitive values.
+We created a new class called \lstinline{SelfGravity} which inherited \lstinline{MUSCLHancockSourceTerm}. 
 \begin{lstlisting}
 ...
 cdef class SelfGravity(MUSCLHancockSourceTerm):
     ...
     cpdef apply_primitive(self, object integrator):
+    	...
         # loop over each face in the mesh 
         for m in range(integrator.mesh.faces.get_carray_size()):
             ....
@@ -753,6 +764,13 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
 
                     # update energy 
                     mv[k][i] += 0.5*dt*mass.data[i]*a[k][i]
+                    
+    cpdef compute_source(self, object integrator):
+    	...
+        phdLogger.info("SelfGravity: Calculating accelerations")
+        self.gravity.build_tree(integrator.particles)
+        self.gravity.walk(integrator.particles)
+        ...
 
     cpdef apply_conservative(self, object integrator):
         ...
@@ -766,3 +784,10 @@ cdef class SelfGravity(MUSCLHancockSourceTerm):
                     # update energy 
                     e.data[i] += 0.5*dt*mv[k][i]*a[k][i]
 \end{lstlisting}
+From Section~\ref{sec.gravity} the primitive and conservative variables are modified by gravity
+(see Equation \ref{eq.gravity.update}). In the case of the primitive variables, we applied a
+velocity half update in \lstinline{apply_primitive()}. For simplicity, we also added the initial half 
+conservative update to bypass the need to store auxiliary values. In similar fashion,
+we added the post half conservative update in \lstinline{apply_conservative()}. The actual computation
+of the gravity is performed in \lstinline{compute_source()}. We these simple calls we have implemented
+a self gravity in this framework.
