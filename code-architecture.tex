@@ -529,6 +529,7 @@ geometric terms. Further this allows a framework to allow different structured m
 (spherical and cylindrical). Since all geometric quantities are regulated to the mesh
 
 \subsubsection{Domain Manager}
+\label{sec.domain.manager}
 Our \lstinline{DomainManager} class is designed to handle information associated with
 the domains of the simulation. We consider a domain to be the spatial region where the computation
 is performed. In serial, this is the entire spatial region of the simulation.
@@ -579,7 +580,6 @@ associated with a ghost particle. This allows ghost particles to be easily updat
 operations are implemented through \lstinline{update_ghost_fields()} and 
 \lstinline{update_ghost_gradients()}
 
-
 When a particle leaves the simulation domain in serial or parallel the \lstinline{DomainManager}
 flags that particle and then applies the boundary condition. For reflective boundaries the particle is not
 allowed to leave and for periodic boundaries the particle is wrapped back into the domain. If the simulation
@@ -588,11 +588,11 @@ it from the local particle container. If a particle leaves its processor patch t
 will query all domains and find the correct domain for export.
 
 \subsubsection{Boundary Condition}
-Similar to interior ghost particles, exterior ghost particles are used to
-complete local meshes. However, exterior ghost particles are not from neighboring
+Similar to interior ghost particles (see Section\ref{sec.domain.manager}), exterior ghost particles
+are used to complete local meshes. However, exterior ghost particles are not from neighboring
 domains but instead are created through a boundary condition. To allow for different
-boundary condition we have created \lstinline{BoundaryConditionBase} that interacts
-with \lstinline{DomainManager}. The api is listed below:
+boundary conditions we have created \lstinline{BoundaryConditionBase} class that interacts
+with the \lstinline{DomainManager}. The API is listed below:
 \begin{itemize}
 	\item \lstinline{create_ghost_particle()} create ghost particle from flagged particle.
     \item \lstinline{migrate_particles()} for particles that have left the domain, apply
@@ -600,33 +600,35 @@ with \lstinline{DomainManager}. The api is listed below:
     \item \lstinline{update_gradients()} apply boundary condition to ghost particle gradients.
     \item \lstinline{update_fields()} apply boundary condition to ghost particle fields.
 \end{itemize}
-Through this api, any boundary condition may be implemented. The boundary condition does not have
+Through the API, any boundary condition may be implemented. The boundary condition does not have
 to be uniform in each dimension. Mixed boundaries or even problem specific boundaries are allowed
-in this framework. Furthermore, the api allows the boundary
-condition to modify particle motion and field data. In this way, we have extracted all boundary
-information from the \lstinline{DomainManager}.
+in this framework. Furthermore, the API allows the boundary condition to modify particle motion and
+field data. In this way, we have extracted all the boundary information from the 
+\lstinline{DomainManager}.
 
 Currently, we have two implementations of boundary conditions, reflective and periodic.
-In the reflective case, the flagged particle is mirrored across each boundary edge of the
+In the reflective case, a flagged particle is mirrored across each boundary edge of the
 simulation. If an intersection occurs, a ghost particle is created with its normal velocity flipped.
 In the serial case, the ghost particle is added directly to the particle data container. In parallel, the 
 ghost particle is then further inspected for intersection of neighboring processors. The ghost particle
-is then placed in a communication to be exported to each flagged processor. For the periodic case
+is then placed in a communication buffer to be exported to each flagged processor. For the periodic case
 the procedure is similar, with the exception that particle is periodically shifted
 instead of being mirrored.
 
 \subsubsection{Load Balance}
-Our load balance scheme described in Section~\ref{sec.parallel} is implemented through the 
+Our load balance scheme, described in Section~\ref{sec.parallel}, is implemented through the 
 \lstinline{LoadBalance} class. The method \lstinline{distribute()} performs the redistribution of particles 
 across processors in a parallel run. The \lstinline{LoadBalance} class is essentially an API.
 Internally, it has a reference to a \lstinline{Tree} class that performs all the underlining operations. This 
 class was one of the early algorithms implemented before the core ideas of code was born out. Therefore, this 
-class will be heavily modified in the next revision. Two points of modification are, first, the API  needs to 
-be become independent of the internal implementation and, second, we want to generalize the load balance 
-scheme to allow more mature third party packages. Our current load balance scheme is a simplistic and more 
-optimized implementations exists. For example we would like to follow pysph and use the \texttt{Zoltan} 
-library \citep{Devine2000}. \texttt{Zoltan} is an mature framework offering geometric, graph-based, 
-hypergraph-based partioning algorithms for load balancing.
+class will be heavily modified to make it consistent with the rest of the code in the next revision.
+Points of modification are, first, the API  needs to be become independent of the internal implementation and, 
+second, we want to generalize the load balance scheme to allow more mature third party packages. As an example
+of a third party package is the \texttt{Zoltan} library \citep{Devine2000} which offers geometric, graph-
+based, hypergraph-based partioning algorithms for load balancing. Additionally \texttt{Zoltan} has a 
+\texttt{Python} front end\footnote{\url{http://pysph.readthedocs.io/en/latest/pyzoltan/overview.html}},
+allowing it to be easily implemented in \texttt{Python} or \texttt{Cython}.
+ 
 
 
 % Core Fluid Computation
@@ -790,4 +792,4 @@ velocity half update in \lstinline{apply_primitive()}. For simplicity, we also a
 conservative update to bypass the need to store auxiliary values. In similar fashion,
 we added the post half conservative update in \lstinline{apply_conservative()}. The actual computation
 of the gravity is performed in \lstinline{compute_source()}. We these simple calls we have implemented
-a self gravity in this framework.
+a self gravity scheme in this framework.
