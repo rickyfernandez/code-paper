@@ -472,6 +472,29 @@ component. Second, the momentum and energy is updated during the flux update
 %
 \subsubsection{Constant}
 \subsubsection{Tree}
+Gravity is a long range force. Because of the typical high density range
+seen in astrophysical problems, the addition of gravity is particularly challenging to
+efficiently and accurately calculate gravitational forces. The root of the problem
+is the $N-1$ calculation per particle in the direct sum approach. Calculating for
+each particle the gravity solver scales as $\mathcal{O}(N^2)$ which is not tractable.
+The scaling problem can be remedy by a Tree based solver. In this scenario the particles
+are broken into a hierarchy of groups, with their own multipole value and center of mass, dictated by a 
+recursive spatial subdivision. The hierarchy is a Tree structure than can transversed approximately
+by $\log{}N$ operations. Thus the $\mathcal{O}(N^2)$ scaling produced by the direct sum
+approach sum can be approximated by partial sum that scales as $\mathcal{O}(N\log{}N)$.
+
+Our spatial decomposition scheme is based on the Barnes Hut algorithm. In this scheme
+a domain size cubic node, called the root, is constructed with 8 daughters that
+subdivides the space evenly. Particles are added to the root in a one by one basis. For each particle
+the root searches for the daughter that encompasses the particle. If the daughter already
+has a particle then the daughter is further subdivided by 8 daughters. The subdivision process
+proceeds until each particle resides in its own node, called a leaf node. With Tree formed, the
+multipole force can be easily calculated by ``walking'' the Tree. This procedure begins
+with the root node producing the total mass and center of mass form its daughter values.
+Because the daughter values depends on its daughter the call trickles down until the nodes
+are leafs. For the leaf nodes the calculation is trivial allowing the results to float
+there way to the top.
+
 
 \subsection{Parallelism}
 \label{sec.parallel}

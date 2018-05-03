@@ -498,35 +498,43 @@ time are updated and the system is ready for the next computation.
 % Geometric Computation
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \subsection{Geometric Computation}
-\subsubsection{Mesh Class}
-The mesh class \lstinline{Mesh} is responsible for all geometric computations relating
-to the particle cell. For example the class computes the cells volume and center of mass.
-The class works in tandem with the \lstinline{DomainManager} to build the mesh.
-Once constructed the mesh class register geometric fields that will be needed during
-the simulation.
+In the preceding sections we will go over the classes associated with geometric properties
+of the code. These are the creation of the mesh (\lstinline{Mesh}), ghost particles
+(\lstinline{BoundaryConditionBase}), domain information (\lstinline{DomainManager}),
+and spatial decomposition (\lstinline{LoadBalalnce}) for parallel simulations.
 
-The tessellation algorithm section is performed through \lstinline{build_geometry()}.
-It works withe the \lstinline{DomainManger} building the mesh in rounds. In the first
-round all local particles are added to the tessellation, at this point there are no
-ghost particles. Particles that have infinite volume or that have radius that intersect
-with other processor boundaries, in parallel, or the simulation domain are flagged. Then the 
-\lstinline{DomainManager} is called creating the necessary ghost particles. The mesh is
-updated with the ghost particles and process is repeated. This process continues until
+\subsubsection{Mesh Class}
+The \lstinline{Mesh} class is responsible for all geometric computations relating
+to the particle cell. For example the class computes the cells volume and center of mass.
+The class works in tandem with the \lstinline{DomainManager} to build the mesh. Internally
+the \lstinline{Mesh} has a tessellation class. The tessellation class is wrapper for
+any scheme to produce a Voronoi diagram. For our implementation we follow FVMHD3D code
+\citep{Gaburov2012} and use the CGAL\footnote{\url{www.cgal.org}} library
+\citep{Andreas2009} for Voronoi calculations.
+
+The tessellation algorithm from Section~\ref{sec.tessellation} is performed through the
+\lstinline{build_geometry()} method. It works with the \lstinline{DomainManger} building the mesh
+in rounds. In the first round, all the local particles are added to the tessellation. At this point
+there are no ghost particles. Particles that have infinite volume or a radius that intersects
+other processor boundaries (in parallel) or the simulation domain are flagged. These flagged
+particles are inspected for the creation of ghost particles. The mesh is then updated with new
+ghost particles and the process is repeated. This procedure continues until
 all particles have a finite volume and all neighbors have been accounted for.
 
-With the tessellation complete, cell values are computed. This entail calculating
-cell neighbors, volumes, center of masses, face area vectors etc. The information
-regrading to the faces of each cell is stored an attribute \lstinline{faces}. In this
-data structure, each column is a face. For each face entry there exists references to
-the two particles that define the face. For each particle the neighbor information
-is reference through faces. In this way, when a particle wants all of its neighbors
-it first request all the faces relating to its cells. Then for each face, the neighboring
-particle can be retrieved.
+When the tessellation is complete, cell values are computed. This involves calculating
+cell neighbors, volumes, center of masses, face areas, etc. The information
+regrading the faces is stored in an attribute named \lstinline{faces}.
+For each face entry there exists two references to the particles that define the face. Likewise,
+each particle has references to all the faces that make up the particles cell.
+In this way, when a particle wants all of its neighbors, it first queries all of its faces
+and then for each face retrieves the second particle that makes up the face.
 
-Once the flux have calculated, it is the responsibility of the mesh to use the fluxes
-to update the values of the cells. This was chosen as the equation of update involves
-geometric terms. Further this allows a framework to allow different structured meshes
-(spherical and cylindrical). Since all geometric quantities are regulated to the mesh
+After the geometric quantities are calculated, they can be used for further computations. A
+computation of interest for the \lstinline{Mesh} is the flux update. We have elected
+that the \lstinline{Mesh} perform this computation. The reason being is that we plan
+to add meshes with symmetry (spherical and cylindrical). This can be added in straight forward
+fashion by adding the geometrical terms in the flux update. Thus, to add such meshes we only
+need modify the mesh class and constrain the particle movement.
 
 \subsubsection{Domain Manager}
 \label{sec.domain.manager}
@@ -539,11 +547,11 @@ data is needed from neighboring domains they are requested through the \lstinlin
 
 The \lstinline{DomainManager} was initially designed to contain the limits and dimension of
 the problem. As development continued it became natural that the \lstinline{DomainManager} would
-encompass the boundary condition, ghost particle information, and exchange of data across boundaries.
+encompass the boundary condition, ghost particle information, and exchange of data across the boundaries.
 At its current state, the \lstinline{DomainManager} only supports communication of ghost particle data
 and does not support the general forms of data communication
-(i.e reduction, gathers, broadcast etc). We plan in the next revision to implement an api that
-performs these task. In doing so, we would remove strict dependence on MPI functions and only
+(i.e reduction, gathers, broadcast etc). We plan in the next revision to implement an API that
+performs these tasks. In doing so, we would remove strict dependence on MPI functions and only
 work through the \lstinline{DomainManager}.
 
 %\subsubsection{Internal Boundary Particle Sharing}
@@ -552,40 +560,36 @@ with each domain mapped to a unique processor. The construction
 of the global Voronoi mesh is then delegated to the construction of a disjoint set
 of local Voronoi meshes. For the set of local constructions to be consistent
 with the global mesh, the appropriate boundary particles must be 
-communicated across domains.
-
-Interior ghost particles, are particles formed from neighboring domains and are used to
-connect local meshes together. Their creation is handled by the \lstinline{DomainManager}
+communicated across domains. The particles used to stitch the disjoint meshes are called
+interior ghost particles. Their creation is handled by the \lstinline{DomainManager}
 through the \lstinline{create_interior_ghost_particles()} method. This method
 creates interior ghost particles by inspecting the search radius of
 each local particle. If a particles search radius overlaps with a processor
 boundary then it is flagged and a corresponding ghost particle is created and exported to that processor.
 The search method is made possible by the \lstinline{DomainManager}s ability to query
 all domains through geometrical searches. Care is taken such that no duplicates are created through the 
-whole process. After each particle is inspected, ghost particles are communicated and then the
-mesh is allowed to updated itself. This procedure is repeated until particles are no longer flagged.
-
-%\subsubsection{Particle Motion}
-After a flux update, the particles are allowed to move. Depending on initial particle position and
-velocity a particle may leave its processor or the simulation domain. In either case, the 
-\lstinline{DomainManager} is responsible for the destintation of the particle.
+whole process.
 
 %\subsubsection{Data Communication}
-After the creation of ghost particles, in parallel simulations, supplemental data has to be communicated. 
-For example, the center of mass may not be computed locally because its neighbors may not exist locally.
-This is because our implementation of ghost particles only to guarantees all neighbors of local
-particles. Certainly we could of opted to import all neighbors of ghost particles but instead we have 
-decided to communicate that information instead. Thus, the \lstinline{DomianManager} records all information
-associated with a ghost particle. This allows ghost particles to be easily updated with any data. These
-operations are implemented through \lstinline{update_ghost_fields()} and 
-\lstinline{update_ghost_gradients()}
+After the creation of ghost particles, supplemental data has to be communicated. 
+For example, the center of mass of ghost particle cannot be computed because our implementation
+only guarantees that local particles have all of their neighbors. Certainly we could of opted to import all 
+neighbors of ghost particles but instead we have decided to communicate that information instead. Thus, the 
+\lstinline{DomianManager} records all information associated with a ghost particle. This allows ghost 
+particles to be easily updated with any data. These operations are implemented through 
+\lstinline{update_ghost_fields()} and \lstinline{update_ghost_gradients()}.
 
+%\subsubsection{Particle Motion}
+The \lstinline{DomainManager} is also responsible for movement of particles.
+After a flux update, the particles are allowed to move. Depending on initial particle position and
+velocity, a particle may leave its processor or the simulation domain. In either case, the 
+\lstinline{DomainManager} is responsible for the destintation of the particle.
 When a particle leaves the simulation domain in serial or parallel the \lstinline{DomainManager}
 flags that particle and then applies the boundary condition. For reflective boundaries the particle is not
-allowed to leave and for periodic boundaries the particle is wrapped back into the domain. If the simulation
-is in parallel the \lstinline{DomainManager} exports the particle to the correct processor and removes
-it from the local particle container. If a particle leaves its processor patch the \lstinline{DomainManager}
-will query all domains and find the correct domain for export.
+allowed to leave and for periodic boundaries the particle is wrapped back onto the domain. If the simulation
+is in parallel the \lstinline{DomainManager} exports the particle to the correct processor. Likewise,
+if a particle leaves its processor patch the \lstinline{DomainManager}
+will query the domains and find the respective domain for export.
 
 \subsubsection{Boundary Condition}
 Similar to interior ghost particles (see Section\ref{sec.domain.manager}), exterior ghost particles
