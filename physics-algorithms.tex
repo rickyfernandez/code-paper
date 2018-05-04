@@ -539,11 +539,12 @@ particles are finally returned to their local processor with correct force calcu
 \subsection{Parallelism}
 \label{sec.parallel}
 \subsubsection{Partitioning}
-For domain decomposition we follow the approach of (Springel) and use
-a space filling curve. Here every particle position is mapped onto a
-1D line. The line is decomposed into a number or roughly equal pieces.
-The number of segments is equal to the number of processor for the
-give run.
+For domain decomposition we use a Hilbert-Peano space filling curve \citep{Springel2005}. A space
+filling curve maps 3D positions onto a 1D curve. A Hilbert-Peano curve has the additional property
+that it preserves locality. Meaning that points that are close along the 1D curve or generally close
+in 3D space. To perform a load balance, the idea is generate a Hilbert key for each particle in
+the simulation. Then the keys are sorted and partitioned with roughly equal work across the processors.
+
 \begin{figure}
     \begin{center}
         \includegraphics[width=0.9\textwidth]{figures/load-balance.eps}
@@ -551,7 +552,24 @@ give run.
     \end{center}
 \end{figure}
 
-In practice, for each particle a Peano-Hilbert key is computed. The key
+In practice, each dimension of the particle is mapped to the integer interval
+of $[0, 2^n-1]$, where n is the number of bits per dimension. The parameter
+$n$ may be thought as resolution level of the domain similar to AMR codes. For example,
+when $n=1$ the domain is portioned into $2^1\times2^1=4$ cells in 2D. Likewise, if $n=4$
+the domain is partitioned into $2^4\times2^4=256$ cells. Therefore every $n$ corresponds
+to a level of refinement. Moreover, the total number of cells corresponds to the total
+possible number of Hilbert-Peano keys. We typically use values of $n\le 20$ such that
+the key fits in 64-bit integer. After the keys are computed for each particle the keys
+need to be sorted. However performing a global sort is not a trivial operation. Instead
+the keys are sorted locally and partitioned into small segments. Then the segments are shared
+across all the processors and segments are further refined by joing and splitting overlaps.
+The final result is a series of segments that have roughly constant work load are assigned
+to each processor. Geometrically, the segments create a tiling of the space, see figure.
+Here we have performed the Sedov simulation see test on 8 processors. On the left hand side
+we plot the tiling produce by the segments with particle overlayed color coded by their
+residing processor. Further we have plotted the the Hilbert-Peano keys (red line) at $n=4$.
+Clearly we can see the segment cuts that produce compact spaces of particles. On the right
+hand side we show the Voronoi mesh produced by this decomposition.
 
 \subsubsection{Ghost particle copying}
 For ghost particle we make a further distinction, interior and exterior ghost particles.
