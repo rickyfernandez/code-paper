@@ -431,6 +431,7 @@ an external source or by the self gravity of the gas. In the latter case
 the potential is given by Poisson's equation
 %
 \begin{equation}
+	\label{eq.poisson}
 	\nabla^2\mathbf{\Phi} = 4\pi G\rho
 \end{equation}
 For the moment assume that $\mathbf{\Phi}$ is given. Then the equations
@@ -439,6 +440,7 @@ include the gravitational force. First, the time derivatives in the
 reconstruction equation are replaced by
 %
 \begin{equation}
+	\label{eq.primitive.gravity}
     \frac{\partial\mathbf{W}}{\partial t}  + \mathbf{A}
     	\left(\mathbf{W}\right)\frac{\partial\mathbf{W}}{\partial\mathbf{r}}
         = \left(
@@ -466,13 +468,23 @@ component. Second, the momentum and energy is updated during the flux update
             (\mathbf{W}^n) + \sum_j A_{ij}'\mathbf{\hat{F}}_{ij,E}'
             (\mathbf{W}')\right) - \frac{1}{2}\Delta t\left( 
         	m_i\mathbf{v}_i\nabla_i\mathbf{\Phi} +
-            m_i'\mathbf{v}_i'\nabla_i\mathbf{\Phi}'\right)\\
+            m_i'\mathbf{v}_i'\nabla_i\mathbf{\Phi}'\right).\\
     \end{array}
 \end{equation}
 %
 \subsubsection{Constant}
+In the simplest case, the gravitational field can be defined as a constant external field. This assumes
+that the self gravity component of the gravitational field is negligible compared to the external field.
+In this case $\rho$ can be set to zero and the solution to Equation~\ref{eq.poisson} becomes trivial
+\begin{equation}
+	-\nabla\mathbf{\Phi} = \mathbf{g},
+\end{equation}
+where $\mathbf{g}$ is a constant field. Once $\mathbf{g}$ is specified it can be coupled with the fluid
+equations through Equations \ref{eq.primitive.gravity} and \ref{eq.gravity.update}.
+
 \subsubsection{Tree}
-Gravity is a long range force. Because of the typical high density range
+In the general case self gravity should be taken into account. Because 
+gravity is a long range force and the typical high density range
 seen in astrophysical problems, the calculation of the gravitational forces
 can be particularly challenging. The root of the problem
 is the $N-1$ calculation per particle in the direct sum approach. Calculating the force for
