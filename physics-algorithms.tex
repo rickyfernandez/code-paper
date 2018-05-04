@@ -473,28 +473,56 @@ component. Second, the momentum and energy is updated during the flux update
 \subsubsection{Constant}
 \subsubsection{Tree}
 Gravity is a long range force. Because of the typical high density range
-seen in astrophysical problems, the addition of gravity is particularly challenging to
-efficiently and accurately calculate gravitational forces. The root of the problem
-is the $N-1$ calculation per particle in the direct sum approach. Calculating for
-each particle the gravity solver scales as $\mathcal{O}(N^2)$ which is not tractable.
-The scaling problem can be remedy by a Tree based solver. In this scenario the particles
-are broken into a hierarchy of groups, with their own multipole value and center of mass, dictated by a 
-recursive spatial subdivision. The hierarchy is a Tree structure than can transversed approximately
-by $\log{}N$ operations. Thus the $\mathcal{O}(N^2)$ scaling produced by the direct sum
-approach sum can be approximated by partial sum that scales as $\mathcal{O}(N\log{}N)$.
+seen in astrophysical problems, the calculation of the gravitational forces
+can be particularly challenging. The root of the problem
+is the $N-1$ calculation per particle in the direct sum approach. Calculating the force for
+each particle, produces a solver that scales as $\mathcal{O}(N^2)$ which is intractable.
+The scaling problem can be remedy by a Tree based solver (\cite{Barnes1986}; hereafter BH).
+In this scenario the particles
+are broken into a hierarchy of groups, with their own multipole value, dictated by a 
+recursive spatial subdivision scheme. The hierarchy, combined with a suitable
+criteria to transverse it, can be used to approximate the force calculation in
+$\log{}N$ operations per particle. Thus the $\mathcal{O}(N^2)$ scaling produced by the direct sum
+approach can be approximated by an operation that scales as $\mathcal{O}(N\log{}N)$.
 
-Our spatial decomposition scheme is based on the Barnes Hut algorithm. In this scheme
-a domain size cubic node, called the root, is constructed with 8 daughters that
+The first part in constructing a Tree based solver is picking a grouping scheme.
+Our spatial decomposition scheme is based on the BH algorithm. In this scheme
+the domain is placed inside a cubic node, called the root. The root contains 8 daughter nodes in
+3D (4 daughter nodes in 2D) that
 subdivides the space evenly. Particles are added to the root in a one by one basis. For each particle
-the root searches for the daughter that encompasses the particle. If the daughter already
-has a particle then the daughter is further subdivided by 8 daughters. The subdivision process
-proceeds until each particle resides in its own node, called a leaf node. With Tree formed, the
-multipole force can be easily calculated by ``walking'' the Tree. This procedure begins
-with the root node producing the total mass and center of mass form its daughter values.
-Because the daughter values depends on its daughter the call trickles down until the nodes
-are leafs. For the leaf nodes the calculation is trivial allowing the results to float
-there way to the top.
+the root searches for the daughter node that spatially contains the particle. Once found, the daughter
+node will have three possible scenarios. First, if the node does not have any daughter nodes and does
+not store a particle then the particle is placed there and the node is termed a ``leaf'' node.
+Second, if the node already has a daughter node then the search continues recursively. Third,
+if the node already has a particle stored then the node is recursively subdivided until
+both particles exist in their own respective leaf nodes. Once all the particles are processed
+the multipole for each node can be calculated recursively.
 
+With the Tree constructed the force for a given particle can be approximated by ``walking'' the
+Tree. This procedure is performed by starting at the root. Using a specified criteria a decision
+is made if including the nodes multipole provides an accurate force calculation. If it does
+then the multipole value is used and the walk along this branch is terminated. If the multipole 
+is not suitable then the node is ``opened'' and the procedure is repeated for each daughter node.
+The BH criteria to open a node is
+\begin{equation}
+\frac{l}{r} \ge \alpha,
+\end{equation}
+where $l$ is the side length of the node, $r$ is the distance between the particle and the center mass
+of the node, and $\alpha$ is a free parameter constrained to $0 \le \alpha \le 1$. The error is 
+effectively controlled by $\alpha$ because decreasing $\alpha$ produces walks with increasing lower
+level nodes. At the extreme case, setting $\alpha=0$ opens every node and the computation becomes
+the original direct sum approach.
+
+At this point, our description of the Tree solver has been purely a serial implementation. In a parallel
+simulation the algorithm has to be slightly modified. We follow the approach of \cite{Springel2005}. In
+this approach each processor build its local BH Tree. Moreover, the local tree is augmented with
+``pseudo-particles'' that serve as place holders for branches from different processors. Once the local
+multipole values are computed locally they are communicated across all processors. In doing so, each
+local tree can now construct the global ``top-tree''. The local Tree is consistent in the sense that all
+internal nodes have the correct multipole. Now that the Tree is consistent a Tree walk can be performed.
+However, if particle opens a pseudo-particle it is flagged for export and placed in a communication
+buffer. Once the buffers are full the particles are exchanged and remote walks are performed. The
+particles are finally returned to their local processor with correct force calculation.
 
 \subsection{Parallelism}
 \label{sec.parallel}
